@@ -13,10 +13,10 @@ A simple text-based Wordle App.
 - Predefined word list can also be set in `WordleGame.js` or passed as an argument in `index.ts`
 
 ## Quick Start
-Please ensure you have Node.js installed on your machine.
+Please ensure you have the minimum Node.js version of 23.x installed.
 1. Install dependencies:
    ```bash
-    npm install
+   npm install
    ```
 2. Run the app:
    ```bash
