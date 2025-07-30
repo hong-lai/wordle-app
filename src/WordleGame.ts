@@ -32,8 +32,6 @@ export default class WordleGame {
     private isGameOver: boolean;
     private predefinedList: string[];
 
-    private rl: readline.Interface | undefined;
-
     // assume at least one player is needed
     constructor({
         mode = "NORMAL",
@@ -91,17 +89,15 @@ export default class WordleGame {
     }
 
     async gameLoop() {
-        if (!this.rl) {
-            this.rl = readline.createInterface({
-                input: process.stdin,
-                output: process.stdout
-            });
-        }
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
 
         while (!this.isGameOver) {
             const currentPlayer = this.currentPlayer;
 
-            const input = await this.rl.question(`[${currentPlayer.name}|${currentPlayer.getNumGuess() + 1}]: `);
+            const input = await rl.question(`[${currentPlayer.name}|${currentPlayer.getNumGuess() + 1}]: `);
 
             let result: WordleCheckResult;
 
@@ -129,7 +125,7 @@ export default class WordleGame {
             }
         }
 
-        this.rl.close();
+        rl.close();
     }
 
     guess(word: string) {
