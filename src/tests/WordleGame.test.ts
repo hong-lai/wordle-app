@@ -5,7 +5,7 @@ import WordleGame from "../WordleGame";
 describe("Wordle Game", () => {
 
     it('should be case insensitive for input', () => {
-        const wordleGame = new WordleGame({});
+        const wordleGame = new WordleGame();
 
         wordleGame.setWordleAnswer("HelLo");
         const resultA = wordleGame.guess('WorlD');

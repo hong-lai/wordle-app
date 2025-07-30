@@ -8,9 +8,9 @@ A simple text-based Wordle App.
 - Customizable maximum guesses per player
 
 ## Usage
-- Choose between `normal` and `host-cheat` modes (For now, you need to set it in `index.js`)
-- Customizable maximum guesses per player (default is 6, you may change it in `index.js`)
-- Predefined word list can also be set in `WordleGame.js` or passed as an argument in `index.js`
+- Choose between `normal` and `host-cheat` modes (For now, you need to set it in `index.ts`)
+- Customizable maximum guesses per player (default is 6, you may change it in `index.ts`)
+- Predefined word list can also be set in `WordleGame.js` or passed as an argument in `index.ts`
 
 ## Quick Start
 Please ensure you have Node.js installed on your machine.

@@ -40,7 +40,7 @@ export default class WordleGame {
         predefinedList = defaultPredefinedList,
         maxGuessPerPlayer = 6,
         playerName = 'annoymous'
-    }: Partial<WordleGameOption>) {
+    }: Partial<WordleGameOption> = {}) {
 
         this.maxGuessPerPlayer = maxGuessPerPlayer;
 
