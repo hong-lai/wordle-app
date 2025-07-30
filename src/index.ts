@@ -1,6 +1,7 @@
 import WordleGame from "./WordleGame";
+import wordleList from "./wordleList";
 
-const wordleGame = new WordleGame({ mode: 'CHEAT' });
+const wordleGame = new WordleGame({ mode: 'NORMAL', predefinedList: wordleList });
 
 wordleGame.gameLoop().then(() => {
 

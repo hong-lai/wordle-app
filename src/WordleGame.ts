@@ -36,7 +36,7 @@ export default class WordleGame {
     constructor({
         mode = "NORMAL",
         predefinedList = defaultPredefinedList,
-        maxGuessPerPlayer = 6,
+        maxGuessPerPlayer = mode === 'CHEAT' ? Infinity : 6,
         playerName = 'annoymous'
     }: Partial<WordleGameOption> = {}) {
 
@@ -46,10 +46,9 @@ export default class WordleGame {
 
         if (mode === 'NORMAL') {
             this.wordle = new Wordle(this.pickRandomAnswer());
-            console.log("[WordleGame] Hint:", this.wordle.getAnswer());
 
         } else {
-            this.wordle = new HostCheatWordle(predefinedList);
+            this.wordle = new HostCheatWordle(this.predefinedList);
         }
 
         this.players = new Map();
