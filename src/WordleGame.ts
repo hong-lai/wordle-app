@@ -118,7 +118,7 @@ export default class WordleGame {
                 break;
 
             } else if (currentPlayer.getNumGuess() >= this.maxGuessPerPlayer) {
-                console.log('[WordleGame] 🙁 You lost.')
+                console.log(`[WordleGame] 🙁 You lost. The anwser is ${this.wordle.getAnswer()}`)
                 this.isGameOver = true;
                 break;
             }

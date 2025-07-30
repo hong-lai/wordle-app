@@ -1,8 +1,6 @@
 import { describe, it } from "node:test";
-import Wordle from "../Wordle";
 import Player from "../Player";
 import assert from "node:assert";
-import WordleGame from "../WordleGame";
 
 describe("Player Guess State", () => {
 
