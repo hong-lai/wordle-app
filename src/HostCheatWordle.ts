@@ -1,4 +1,4 @@
-import Wordle, { WordleCheckResult } from "./Wordle";
+import Wordle, { type WordleCheckResult } from "./Wordle";
 
 export default class HostCheatWordle extends Wordle {
 

@@ -1,7 +1,8 @@
 import readline from 'node:readline/promises';
 import Player from "./Player";
-import Wordle, { WordleCheckResult } from "./Wordle";
+import Wordle, { type WordleCheckResult } from "./Wordle";
 import HostCheatWordle from './HostCheatWordle';
+import wordleList from "./wordleList";
 
 type GameMode = "NORMAL" | "CHEAT"
 
@@ -12,17 +13,7 @@ type WordleGameOption = {
     playerName: string
 }
 
-const defaultPredefinedList = [
-    "HELLO",
-    "WORLD",
-    "QUITE",
-    "FANCY",
-    "FRESH",
-    "PANIC",
-    "CRAZY",
-    "BUGGY",
-    "SCARE"
-]
+const defaultPredefinedList = wordleList
 
 export default class WordleGame {
     private maxGuessPerPlayer: number
@@ -73,6 +64,10 @@ export default class WordleGame {
 
     setWordleAnswer(answer: string) {
         this.wordle.setAnswer(answer.toUpperCase());
+    }
+
+    getWordleAnswer() {
+        return this.wordle.getAnswer();
     }
 
     private setPlayer(player: Player) {

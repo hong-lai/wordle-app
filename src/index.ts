@@ -1,10 +1,15 @@
 import WordleGame from "./WordleGame";
-import wordleList from "./wordleList";
 
-const wordleGame = new WordleGame({ mode: 'NORMAL', predefinedList: wordleList });
+const wordleGame = new WordleGame({ mode: 'NORMAL' });
 
-wordleGame.gameLoop().then(() => {
+function main() {
+    wordleGame.gameLoop().then(() => {
 
-    console.log('Thank you for playing. 🥰');
+        console.log('Thank you for playing. 🥰');
 
-});
+    });
+}
+
+if (require.main === module) {
+    main();;
+}
