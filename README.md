@@ -34,9 +34,3 @@ Please ensure you have the minimum Node.js version of 23.x installed.
    - `?` for correct letter in the wrong position
    - `_` for incorrect letter
 3. Continue guessing until you find the correct word or run out of guesses.
-
-
-## Future Enhancements
-- Implement a web-based React App for better user experience
-- Add multiplayer support
-- Add fancy animations on the UI
