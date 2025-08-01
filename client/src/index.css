@@ -18,13 +18,20 @@ body {
   margin: 0;
   display: flex;
   justify-content: center;
-  min-width: 320px;
-  text-align: center;
+  min-width: 420;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+}
+
+h2 {
+  text-align: center;
+}
+
+*:focus {
+    outline:none;
 }
 
 button:hover {

@@ -35,7 +35,6 @@ describe("Host Cheat Wordle checker", () => {
         ];
 
         for (const [first, second, third] of guessLists) {
-            console.log(first, second, third)
             const wordleGame = new WordleGame({ mode: 'CHEAT', predefinedList: testList });
     
             const resultA = wordleGame.guess(first);

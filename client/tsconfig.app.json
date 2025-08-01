@@ -27,5 +27,5 @@
       "@wordle/*": ["../src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../server/src/utils"]
 }

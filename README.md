@@ -2,15 +2,16 @@
 
 A simple text-based Wordle App.
 
+Client and server apps are also avaliable:
+- [Go to Client Folder](client/)
+- [Go to Server Folder](server/)
+
+
 ## Features
 - Play Wordle in a terminal
 - Two modes available: `normal` and `host-cheat`
 - Customizable maximum guesses per player
 
-## Usage
-- Choose between `normal` and `host-cheat` modes (For now, you need to set it in `index.ts`)
-- Customizable maximum guesses per player (default is 6, you may change it in `index.ts`)
-- Predefined word list can also be set in `WordleGame.js` or passed as an argument in `index.ts`
 
 ## Quick Start
 Please ensure you have the minimum Node.js version of 23.x installed.

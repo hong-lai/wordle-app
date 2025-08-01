@@ -4,16 +4,12 @@ import type { InputController, Word } from '../../App';
 import WordleRow from './WordleWordRow';
 
 function WordleBoard({
-  currentRowIdx,
   words,
   maxSize,
-  maxRow,
   keyController
 }: {
-  currentRowIdx: number;
   words: Word[];
   maxSize: number;
-  maxRow: number;
   keyController: InputController 
 }) {
   const boardStyles: React.CSSProperties = {
@@ -53,16 +49,12 @@ function WordleBoard({
   );
 
   useEffect(() => {
-    if (currentRowIdx >= maxRow) {
-      return;
-    }
-
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleKeyDown, currentRowIdx, maxRow]);
+  }, [handleKeyDown]);
 
   return (
     <motion.div

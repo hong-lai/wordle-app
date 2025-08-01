@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Keyboard from './components/Keyboard/Keyboard';
 import WordleBoard from './components/Wordle/WordleBoard';
-import WordleGame from '@wordle/WordleGame';
+import { type GameMode } from '@wordle/WordleGame';
 import useTimeoutMessage from './hooks/useTimoutMessage';
 import StatusBar from './components/StatusBar';
+import axios from 'axios';
+import GameSetting from './components/Wordle/WordleSetting';
 
-const MAX_SIZE = 5;
-const MIN_ROW = 6;
-const MAX_ROW = 6;
-
-const initializeWords = () => Array.from({ length: MIN_ROW }, () => []);
-const initializeGame = () => new WordleGame({ maxGuessPerPlayer: MAX_ROW });
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL =
+  import.meta.env.VITE_API_URI ?? 'http://localhost:5555/api/v1';
 
 export type Status = 'HIT' | 'PRESENT' | 'MISS' | 'UNKNOWN';
 export type Letter = {
@@ -18,20 +17,46 @@ export type Letter = {
   status: Status;
 };
 export type Word = Letter[];
-export type GameState = 'WIN' | 'LOSE' | 'PLAYING';
+export type GameState = 'WIN' | 'LOSE' | 'PLAYING' | 'WAITING';
 export interface InputController {
   backspace(): void;
   letter(key: string): void;
   enter(): void;
 }
 
+// word length
+const MAX_SIZE = 5;
+
 function App() {
-  // keep track of which row is active
   const [currentRowIdx, setCurrentRowIdx] = useState(0);
-  const [words, setWords] = useState<Word[]>(initializeWords);
-  const [wordleGame, setWordleGame] = useState(initializeGame);
-  const [gameState, setGameState] = useState<GameState>('PLAYING');
+  const [gameState, setGameState] = useState<GameState>('WAITING');
   const [timeoutMessage, setTimeoutMessage] = useTimeoutMessage();
+  const [maxRow, setMaxRow] = useState(6);
+  const [minRow, setMinRow] = useState(6);
+  const [mode, setMode] = useState<GameMode>('NORMAL');
+  const [playerName, setPlayerName] = useState('Player from HK');
+  const [words, setWords] = useState<Word[]>(() =>
+    Array.from({ length: 6 }, () => [])
+  );
+
+  const initializeGame = async () => {
+    const _minRow = Math.min(maxRow, 6);
+    setMinRow(_minRow);
+    setPlayerName('Player');
+    setGameState('PLAYING');
+    setWords(() => Array.from({ length: _minRow }, () => []));
+    setCurrentRowIdx(0);
+
+    try {
+      await axios.post('/create', {
+        name: playerName,
+        mode: mode,
+        maxGuessPerPlayer: maxRow,
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   const inputController: InputController = {
     backspace() {
@@ -67,7 +92,7 @@ function App() {
       ]);
     },
 
-    enter() {
+    async enter() {
       if (gameState !== 'PLAYING') {
         return;
       }
@@ -76,18 +101,25 @@ function App() {
         return;
       }
 
-      if (currentRowIdx < MAX_ROW) {
+      if (mode === 'CHEAT' || currentRowIdx < maxRow) {
         // ----------------------------------------------------------
         // Validate Wordle
         // ----------------------------------------------------------
         try {
-          const result = wordleGame.guess(
-            words[currentRowIdx].map((word) => word.letter).join('')
-          );
+          const response = await axios.post('/guess', {
+            word: words[currentRowIdx].map((word) => word.letter).join(''),
+          });
+
+          if (response.data.success === false) {
+            setTimeoutMessage(response.data.message);
+            return;
+          }
+
+          const resultDetails = response.data.message.details as Letter[];
 
           // apply all statuses to words
           words[currentRowIdx].forEach((letter, i) => {
-            letter.status = result.details[i].status;
+            letter.status = resultDetails[i].status;
           });
 
           setWords([
@@ -95,29 +127,35 @@ function App() {
             [
               ...words[currentRowIdx].map((w, i) => ({
                 letter: w.letter,
-                status: result.details[i].status,
+                status: resultDetails[i].status,
               })),
             ],
             ...words.slice(currentRowIdx + 1),
           ]);
 
-          // win the game if all HITs happen
-          if (result.statistic.get('HIT') === MAX_SIZE) {
+          const hitCount = resultDetails.reduce((sum, curr) => {
+            return (curr.status === 'HIT' ? 1 : 0) + sum;
+          }, 0);
+
+          if (hitCount === MAX_SIZE) {
             setGameState('WIN');
             return;
           }
 
           const round = currentRowIdx + 1;
 
-          // lost the game if it is the max round without all HITs
-          if (round >= MAX_ROW) {
-            setTimeoutMessage("The correct answer is " + wordleGame.getWordleAnswer(), 5000);
+          if (mode === 'NORMAL' && round >= maxRow) {
+            const response = await axios.post('/acknowledge');
+
+            const correctAnswer = response.data.answer;
+
+            setTimeoutMessage('The correct answer is ' + correctAnswer, 5000);
             setGameState('LOSE');
             return;
           }
 
           // add more row if hits the min row
-          if (round >= MIN_ROW) {
+          if (round >= minRow) {
             setWords([...words, []]);
           }
 
@@ -141,35 +179,45 @@ function App() {
     }
   };
 
-  const ResetButton = (
-    <button
-      onClick={() => {
-        setWords(initializeWords);
-        setCurrentRowIdx(0);
-        setGameState('PLAYING');
-        setWordleGame(initializeGame);
-      }}
-    >
-      Play Again!
-    </button>
-  );
+  const ResetButton = <button onClick={initializeGame}>Play Again!</button>;
 
   return (
     <>
-      <h2>WORDLE APP 👾</h2>
-      <StatusBar
-        gameState={gameState}
-        resetComponent={ResetButton}
-        message={timeoutMessage}
-      />
-      <WordleBoard
-        maxSize={MAX_SIZE}
-        maxRow={MAX_ROW}
-        words={words}
-        currentRowIdx={currentRowIdx}
-        keyController={inputController}
-      />
-      <Keyboard onClick={handleKeyboardClick} />
+      <div
+        style={{
+          position: 'sticky',
+          backgroundColor: '#242424',
+          top: 0,
+        }}
+      >
+        <h2>WORDLE APP 👾</h2>
+        {gameState !== 'WAITING' && (
+          <StatusBar
+            gameState={gameState}
+            resetComponent={ResetButton}
+            message={timeoutMessage}
+          />
+        )}
+      </div>
+      {gameState === 'WAITING' && (
+        <GameSetting
+          setMaxRow={setMaxRow}
+          setMode={setMode}
+          maxRow={maxRow}
+          mode={mode}
+          start={initializeGame}
+        />
+      )}
+      {gameState !== 'WAITING' && (
+        <>
+          <WordleBoard
+            maxSize={MAX_SIZE}
+            words={words}
+            keyController={inputController}
+          />
+          <Keyboard onClick={handleKeyboardClick} />
+        </>
+      )}
     </>
   );
 }

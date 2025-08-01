@@ -3,10 +3,14 @@
 A simple react app for wordle
 
 ## Features
-- Play Wordle in a browser
-- Default mode set to normal, please refer to the text-based app for more customizable configuration
+- Play Wordle in a browser with a nice UI
+- Answer validates on server side
+- No cheating allowable by inspecting the code in the browser
+- Basic setting available on game start
 
 ## Quick Start
+This client app needs the server to run properly, please ensure the server is running before running the client app.
+- [Go to Server Folder](../server/)
 1. Install dependencies:
    ```bash
    npm install
