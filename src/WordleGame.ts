@@ -4,7 +4,7 @@ import Wordle, { type WordleCheckResult } from "./Wordle";
 import HostCheatWordle from './HostCheatWordle';
 import wordleList from "./wordleList";
 
-type GameMode = "NORMAL" | "CHEAT"
+export type GameMode = "NORMAL" | "CHEAT"
 
 type WordleGameOption = {
     mode: GameMode,
@@ -20,7 +20,6 @@ export default class WordleGame {
     private players: Map<Player, number>
     private wordle: Wordle | HostCheatWordle;
     private currentPlayer: Player;
-    private isGameOver: boolean;
     private predefinedList: string[];
 
     // assume at least one player is needed
@@ -45,8 +44,14 @@ export default class WordleGame {
         this.players = new Map();
         const player = this.addPlayer(playerName);
         this.currentPlayer = player;
+    }
 
-        this.isGameOver = false;
+    getMaxGuessPerPlayer() {
+        return this.maxGuessPerPlayer;
+    }
+
+    getCurrentPlayer() {
+        return this.currentPlayer;
     }
 
     static convertResultToText(result: WordleCheckResult) {
@@ -88,7 +93,9 @@ export default class WordleGame {
             output: process.stdout
         });
 
-        while (!this.isGameOver) {
+        let isGameOver = false;
+
+        while (!isGameOver) {
             const currentPlayer = this.currentPlayer;
 
             const input = await rl.question(`[${currentPlayer.name}|${currentPlayer.getNumGuess() + 1}]: `);
@@ -107,14 +114,19 @@ export default class WordleGame {
 
             console.log('[WordleGame]:', WordleGame.convertResultToText(result));
 
-            if (result.statistic.get('HIT') === 5) {
+            const hitCount = result.details.reduce((sum, curr) => {
+                sum += (curr.status === 'HIT' ? 1 : 0)
+                return sum
+            }, 0);
+
+            if (hitCount === 5) {
                 console.log('[WordleGame] 🎊 You WON!!');
-                this.isGameOver = true;
+                isGameOver = true;
                 break;
 
             } else if (currentPlayer.getNumGuess() >= this.maxGuessPerPlayer) {
                 console.log(`[WordleGame] 🙁 You lost. The anwser is ${this.wordle.getAnswer()}`)
-                this.isGameOver = true;
+                isGameOver = true;
                 break;
             }
         }
@@ -124,6 +136,10 @@ export default class WordleGame {
 
     guess(word: string) {
         const guessedWord = word.toUpperCase();
+
+        if (this.hasWon() || this.hasLost()) {
+            throw new Error("Game Over");
+        }
 
         if (guessedWord.length !== 5) {
             throw new Error("Hey! Incorrect word length!");
@@ -135,6 +151,16 @@ export default class WordleGame {
 
         this.currentPlayer.guess(guessedWord)
 
-        return this.wordle.check(this.currentPlayer.getLastGuess());
+        const check = this.wordle.check(this.currentPlayer.getLastGuess());
+
+        return check;
+    }
+
+    hasWon() {
+        return this.currentPlayer.getNumGuess() > 0 && this.currentPlayer.getLastGuess() === this.getWordleAnswer();
+    }
+
+    hasLost() {
+        return !this.hasWon() && this.currentPlayer.getNumGuess() >= this.maxGuessPerPlayer;
     }
 }

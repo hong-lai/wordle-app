@@ -13,7 +13,7 @@ export default class HostCheatWordle extends Wordle {
         return this.getAnswer() === '';
     }
 
-    check(guess: string): WordleCheckResult {
+    override check(guess: string): WordleCheckResult {
         if (this.canCheat()) {
             return this.cheat(guess);
         } else {
@@ -33,9 +33,18 @@ export default class HostCheatWordle extends Wordle {
             const wordle = new Wordle(word);
             const result = wordle.check(guess)
 
-            const hit = result.statistic.get('HIT') ?? 0;
-            const present = result.statistic.get('PRESENT') ?? 0;
-            const miss = result.statistic.get('MISS') ?? 0;
+            const hit = result.details.reduce((sum, curr) => {
+                sum += (curr.status === 'HIT' ? 1 : 0)
+                return sum
+            }, 0);
+            const present = result.details.reduce((sum, curr) => {
+                sum += (curr.status === 'PRESENT' ? 1 : 0)
+                return sum
+            }, 0);
+            const miss = result.details.reduce((sum, curr) => {
+                sum += (curr.status === 'MISS' ? 1 : 0)
+                return sum
+            }, 0);
 
             const wordSize = word.length;
 
@@ -60,11 +69,6 @@ export default class HostCheatWordle extends Wordle {
             this.candidates = remainingCandidates;
 
             return {
-                statistic: new Map([
-                    ["HIT", 0],
-                    ["PRESENT", 0],
-                    ["MISS", 0]
-                ]),
                 details: guess.split('').map(letter => ({
                     letter,
                     status: "MISS"

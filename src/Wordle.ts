@@ -4,7 +4,6 @@ export type Status =
     "MISS";
 
 export type WordleCheckResult = {
-    statistic: Map<Status, number>;
     details: {
         letter: string;
         status: Status;
@@ -30,11 +29,6 @@ export default class Wordle {
         const answer = this.answer;
 
         const details: WordleCheckResult['details'] = [];
-        const statistic = new Map<Status, number>([
-            ["HIT", 0],
-            ["MISS", 0],
-            ["PRESENT", 0],
-        ]);
 
         // used for tracking the max possible number of presents
         const presentCounter = answer.split('').reduce((acc: Record<string, number>, curr, i) => {
@@ -61,8 +55,6 @@ export default class Wordle {
                 status = 'MISS'
             }
 
-            statistic.set(status, (statistic.get(status) ?? 0) + 1)
-
             details.push({
                 letter: playerGuess[i],
                 status
@@ -70,7 +62,6 @@ export default class Wordle {
         }
 
         return {
-            statistic,
             details
         };
     }
