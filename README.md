@@ -27,6 +27,14 @@ Please ensure you have the minimum Node.js version of 23.x installed.
    ```bash
    npm test
    ```
+4. Run local server (default port is 5173):
+   ```bash
+   npm run dev:server
+   ```
+5. Run local client (default port is 5555):
+   ```bash
+   npm run dev:client
+   ```
 
 ## How to Play
 1. Enter a 5-letter word as your guess.

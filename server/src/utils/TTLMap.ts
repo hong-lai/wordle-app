@@ -37,7 +37,6 @@ export default class TTLMap<K, V> extends Map<K, V> {
         for (const [key, timestamp] of this.timestamps.entries()) {
             if (now - timestamp > this.ttl) {
                 this.delete(key);
-                console.log(`${key} has been deleted.`);
             }
         }
     }

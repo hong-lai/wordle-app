@@ -1,30 +1,30 @@
 import { useEffect, useRef } from 'react';
-import type { Word } from '../../App';
-import Box from './WordleLetterBox';
+import LetterBox from './LetterBox';
+import type { Word } from '../../hooks/useGameState';
 
 export function WordleRow({ word, size }: { word: Word; size: number }) {
   const rowRef = useRef<HTMLDivElement>(null);
 
-  const rowStyles: React.CSSProperties = {
-    display: 'flex',
-    columnGap: '6px',
-    justifyContent: "center"
-  };
-
   useEffect(() => {
     rowRef.current?.scrollIntoView({
       behavior: 'smooth',
-      block: 'start'
-    })
+      block: 'start',
+    });
   }, []);
 
   return (
     <div ref={rowRef} style={rowStyles}>
       {Array.from({ length: size }).map((_, i) => (
-        <Box key={i} letter={word[i]} />
+        <LetterBox key={i} letter={word[i]} index={i} />
       ))}
     </div>
   );
 }
+
+const rowStyles: React.CSSProperties = {
+  display: 'flex',
+  columnGap: '6px',
+  justifyContent: 'center',
+};
 
 export default WordleRow;

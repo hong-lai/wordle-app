@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.azure/
+
+.DS_STORE
+.env

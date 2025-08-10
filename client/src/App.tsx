@@ -1,225 +1,310 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Header from './layouts/Header';
 import Keyboard from './components/Keyboard/Keyboard';
-import WordleBoard from './components/Wordle/WordleBoard';
-import { type GameMode } from '@wordle/WordleGame';
-import useTimeoutMessage from './hooks/useTimoutMessage';
-import StatusBar from './components/StatusBar';
-import axios from 'axios';
-import GameSetting from './components/Wordle/WordleSetting';
+import Board from './components/Wordle/Board';
+import MessageBar from './components/MessageBar';
+import Setting from './components/Setting';
+import useTimeoutState from './hooks/useTimoutState';
+import useGameState, { type Word } from './hooks/useGameState';
+import useGameSetting, { type GameMode } from './hooks/useGameSetting';
+import api from './config/api';
 
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL =
-  import.meta.env.VITE_API_URI ?? 'http://localhost:5555/api/v1';
-
-export type Status = 'HIT' | 'PRESENT' | 'MISS' | 'UNKNOWN';
-export type Letter = {
-  letter: string;
-  status: Status;
-};
-export type Word = Letter[];
-export type GameState = 'WIN' | 'LOSE' | 'PLAYING' | 'WAITING';
+export type GameStatus = 'WIN' | 'LOSE' | 'PLAYING' | 'LOADING' | 'WAITING';
 export interface InputController {
   backspace(): void;
   letter(key: string): void;
   enter(): void;
 }
 
-// word length
+type LastGame = {
+  playerName: string;
+  history: { details: Word }[];
+  mode: GameMode;
+  maxGuessPerPlayer: number;
+};
+
+// Word length
 const MAX_SIZE = 5;
 
 function App() {
-  const [currentRowIdx, setCurrentRowIdx] = useState(0);
-  const [gameState, setGameState] = useState<GameState>('WAITING');
-  const [timeoutMessage, setTimeoutMessage] = useTimeoutMessage();
-  const [maxRow, setMaxRow] = useState(6);
-  const [minRow, setMinRow] = useState(6);
-  const [mode, setMode] = useState<GameMode>('NORMAL');
-  const [playerName, setPlayerName] = useState('Player from HK');
-  const [words, setWords] = useState<Word[]>(() =>
-    Array.from({ length: 6 }, () => [])
-  );
+  const [timeoutMessage, setTimeoutMessage] = useTimeoutState('');
+  const [gameSetting, dispatchGameSetting] = useGameSetting();
+  const [gameState, dispatchGameState] = useGameState(gameSetting.minRow);
+  const [gameStatus, setGameStatus] = useState<GameStatus>('LOADING');
+  const [shakeRow, setShakeRow] = useState<number>();
 
-  const initializeGame = async () => {
-    const _minRow = Math.min(maxRow, 6);
-    setMinRow(_minRow);
-    setPlayerName('Player');
-    setGameState('PLAYING');
-    setWords(() => Array.from({ length: _minRow }, () => []));
-    setCurrentRowIdx(0);
+  const currentWord = gameState.words[gameState.currentRowIdx];
+
+  useEffect(() => {
+    const restoreGame = async () => {
+      try {
+        const response = await api.get('/last-game');
+        const lastGame = response.data;
+
+        // Restore game state if there is at least one history
+        if (lastGame?.data?.history?.length) {
+          const { history, maxGuessPerPlayer, mode, playerName } =
+            lastGame.data as LastGame;
+
+          if (mode === 'CHEAT') {
+            dispatchGameSetting({ type: 'set_cheat_mode' });
+          } else {
+            dispatchGameSetting({
+              type: 'set_normal_mode',
+              payload: { maxRow: maxGuessPerPlayer },
+            });
+          }
+
+          dispatchGameSetting({
+            type: 'set_player_name',
+            payload: { playerName },
+          });
+
+          const dummyRowCount =
+            mode === 'CHEAT'
+              ? Math.max(1, gameSetting.minRow - history.length)
+              : maxGuessPerPlayer - history.length;
+
+          dispatchGameState({
+            type: 'restored_words',
+            payload: {
+              words: history.map((entry) => entry.details),
+              dummyRowCount,
+            },
+          });
+
+          setTimeoutMessage(`😄 Welcome back, ${playerName}`);
+          setGameStatus('PLAYING');
+        }
+      } catch (error) {
+        console.error('Error fetching data: ', error);
+      }
+    };
+
+    restoreGame();
+  }, [
+    dispatchGameSetting,
+    gameSetting.minRow,
+    dispatchGameState,
+    setTimeoutMessage,
+  ]);
+
+  const initializeGame = useCallback(async () => {
+    setGameStatus('PLAYING');
+    dispatchGameState({
+      type: 'initialized_words',
+      payload: { minRow: gameSetting.minRow },
+    });
 
     try {
-      await axios.post('/create', {
-        name: playerName,
-        mode: mode,
-        maxGuessPerPlayer: maxRow,
+      await api.post('/create', {
+        name: gameSetting.playerName,
+        mode: gameSetting.mode,
+        maxGuessPerPlayer: gameSetting.maxRow,
       });
+
+      setTimeoutMessage('Enter a 5-letter word, then press Enter.');
     } catch (error) {
-      console.error('Error fetching data:', error);
+      setTimeoutMessage('Error fetching data:' + error, 5000);
     }
-  };
+  }, [dispatchGameState, gameSetting, setTimeoutMessage]);
 
-  const inputController: InputController = {
-    backspace() {
-      if (gameState !== 'PLAYING') {
-        return;
-      }
+  const _inputController: InputController = useMemo(
+    () => ({
+      backspace() {
+        dispatchGameState({ type: 'deleted_letter' });
+      },
 
-      setWords([
-        ...words.slice(0, currentRowIdx),
-        words[currentRowIdx].slice(0, -1),
-        ...words.slice(currentRowIdx + 1),
-      ]);
-    },
+      letter(key: string) {
+        if (currentWord.length === MAX_SIZE) {
+          return;
+        }
 
-    letter(key: string) {
-      if (gameState !== 'PLAYING') {
-        return;
-      }
+        dispatchGameState({
+          type: 'added_letter',
+          payload: { letter: key.toUpperCase() },
+        });
+      },
 
-      if (words[currentRowIdx].length === MAX_SIZE) {
-        return;
-      }
+      async enter() {
+        setShakeRow(undefined);
 
-      setWords([
-        ...words.slice(0, currentRowIdx),
+        if (currentWord.length !== MAX_SIZE) {
+          setTimeoutMessage('Please enter a 5-letter word.', 5000);
+          return;
+        }
 
-        words[currentRowIdx].concat({
-          letter: key.toUpperCase(),
-          status: 'UNKNOWN',
-        }),
+        if (
+          gameSetting.mode === 'CHEAT' ||
+          gameState.currentRowIdx < gameSetting.maxRow
+        ) {
+          // Validate Wordle
+          try {
+            const response = await api.post('/guess', {
+              word: currentWord.map((word) => word.letter).join(''),
+            });
 
-        ...words.slice(currentRowIdx + 1),
-      ]);
-    },
+            if (response.data.success === false) {
+              setTimeoutMessage(response.data.message, 5000);
+              setShakeRow(gameState.currentRowIdx);
+              return;
+            }
 
-    async enter() {
-      if (gameState !== 'PLAYING') {
-        return;
-      }
+            const wordDetails = response.data.message.details as Word;
 
-      if (words[currentRowIdx].length !== MAX_SIZE) {
-        return;
-      }
+            setGameStatus('WAITING');
 
-      if (mode === 'CHEAT' || currentRowIdx < maxRow) {
-        // ----------------------------------------------------------
-        // Validate Wordle
-        // ----------------------------------------------------------
-        try {
-          const response = await axios.post('/guess', {
-            word: words[currentRowIdx].map((word) => word.letter).join(''),
-          });
+            dispatchGameState({
+              type: 'replaced_current_word',
+              payload: { wordToReplace: wordDetails },
+            });
 
-          if (response.data.success === false) {
-            setTimeoutMessage(response.data.message);
-            return;
-          }
+            // Wait until the animation of LetterBox has finished, not elegant, but it works.
+            setTimeoutMessage('🧪 Validating your guess...', 2500).then(
+              async () => {
+                const hitCount = wordDetails.reduce(
+                  (sum, curr) => (curr.status === 'HIT' ? 1 : 0) + sum,
+                  0
+                );
 
-          const resultDetails = response.data.message.details as Letter[];
+                if (hitCount === MAX_SIZE) {
+                  await api.post('/acknowledge');
+                  setTimeoutMessage('🎊 Congrats! You won.');
+                  setGameStatus('WIN');
+                  return;
+                }
 
-          // apply all statuses to words
-          words[currentRowIdx].forEach((letter, i) => {
-            letter.status = resultDetails[i].status;
-          });
+                const round = gameState.currentRowIdx + 1;
 
-          setWords([
-            ...words.slice(0, currentRowIdx),
-            [
-              ...words[currentRowIdx].map((w, i) => ({
-                letter: w.letter,
-                status: resultDetails[i].status,
-              })),
-            ],
-            ...words.slice(currentRowIdx + 1),
-          ]);
+                if (round >= gameSetting.maxRow) {
+                  const response = await api.post('/acknowledge');
 
-          const hitCount = resultDetails.reduce((sum, curr) => {
-            return (curr.status === 'HIT' ? 1 : 0) + sum;
-          }, 0);
+                  const correctAnswer = response.data.answer;
+                  setTimeoutMessage('The correct answer is ' + correctAnswer);
+                  setGameStatus('LOSE');
+                  return;
+                }
 
-          if (hitCount === MAX_SIZE) {
-            setGameState('WIN');
-            return;
-          }
+                // Add more row if hits the min row
+                if (round >= gameSetting.minRow) {
+                  dispatchGameState({ type: 'added_row' });
+                } else {
+                  dispatchGameState({ type: 'proceeded_row' });
+                }
 
-          const round = currentRowIdx + 1;
+                setGameStatus('PLAYING');
 
-          if (mode === 'NORMAL' && round >= maxRow) {
-            const response = await axios.post('/acknowledge');
-
-            const correctAnswer = response.data.answer;
-
-            setTimeoutMessage('The correct answer is ' + correctAnswer, 5000);
-            setGameState('LOSE');
-            return;
-          }
-
-          // add more row if hits the min row
-          if (round >= minRow) {
-            setWords([...words, []]);
-          }
-
-          setCurrentRowIdx(currentRowIdx + 1);
-        } catch (error) {
-          if (error instanceof Error) {
-            setTimeoutMessage(error.message);
+                if (hitCount === 4) {
+                  setTimeoutMessage("You're almost there!");
+                } else {
+                  const presentCount = wordDetails.reduce(
+                    (sum, curr) => (curr.status === 'PRESENT' ? 1 : 0) + sum,
+                    0
+                  );
+                  setTimeoutMessage(
+                    `🟩 Hit: ${hitCount}, 🟨 Present: ${presentCount}`
+                  );
+                }
+              }
+            );
+          } catch (error) {
+            if (error instanceof Error) {
+              setTimeoutMessage(error.message, 5000);
+            }
           }
         }
+      },
+    }),
+    [
+      currentWord,
+      dispatchGameState,
+      gameSetting.maxRow,
+      gameSetting.minRow,
+      gameSetting.mode,
+      gameState.currentRowIdx,
+      setTimeoutMessage,
+    ]
+  );
+
+  const inputController = useMemo(
+    () =>
+      new Proxy(_inputController, {
+        get(target, prop: keyof typeof _inputController) {
+          if (gameStatus !== 'PLAYING') {
+            return () => {};
+          }
+
+          return target[prop].bind(target);
+        },
+      }),
+    [_inputController, gameStatus]
+  );
+
+  const handleKeyboardClick = useCallback(
+    (key: string) => {
+      if (key === 'Enter') {
+        inputController.enter();
+      } else if (key === 'Delete') {
+        inputController.backspace();
+      } else {
+        inputController.letter(key);
       }
     },
-  };
-
-  const handleKeyboardClick = (key: string) => {
-    if (key === 'Enter') {
-      inputController.enter();
-    } else if (key === 'Delete') {
-      inputController.backspace();
-    } else {
-      inputController.letter(key);
-    }
-  };
-
-  const ResetButton = <button onClick={initializeGame}>Play Again!</button>;
+    [inputController]
+  );
 
   return (
     <>
-      <div
-        style={{
-          position: 'sticky',
-          backgroundColor: '#242424',
-          top: 0,
-        }}
-      >
-        <h2>WORDLE APP 👾</h2>
-        {gameState !== 'WAITING' && (
-          <StatusBar
-            gameState={gameState}
-            resetComponent={ResetButton}
-            message={timeoutMessage}
-          />
-        )}
-      </div>
-      {gameState === 'WAITING' && (
-        <GameSetting
-          setMaxRow={setMaxRow}
-          setMode={setMode}
-          maxRow={maxRow}
-          mode={mode}
+      <Header />
+      {gameStatus === 'LOADING' && (
+        <Setting
+          state={gameSetting}
+          dispatch={dispatchGameSetting}
           start={initializeGame}
         />
       )}
-      {gameState !== 'WAITING' && (
+      {gameStatus !== 'LOADING' && (
         <>
-          <WordleBoard
-            maxSize={MAX_SIZE}
-            words={words}
-            keyController={inputController}
-          />
+          <MessageBar message={timeoutMessage} />
+          <div style={{ position: 'relative' }}>
+            {(gameStatus === 'WIN' || gameStatus === 'LOSE') && (
+              <button style={buttonStyles} onClick={initializeGame}>
+                Play Again!
+              </button>
+            )}
+            <div
+              style={{
+                opacity:
+                  gameStatus === 'WIN' || gameStatus === 'LOSE' ? 0.5 : 1,
+              }}
+            >
+              <Board
+                maxSize={MAX_SIZE}
+                words={gameState.words}
+                keyController={inputController}
+                shakeRow={shakeRow}
+              />
+            </div>
+          </div>
           <Keyboard onClick={handleKeyboardClick} />
         </>
       )}
     </>
   );
 }
+
+const buttonStyles: React.CSSProperties = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 20,
+  padding: '10px 18px',
+  backgroundColor: '#471959',
+  color: '#cecece',
+  fontWeight: 600,
+  fontSize: '24px',
+  border: '4px solid #783094',
+};
 
 export default App;

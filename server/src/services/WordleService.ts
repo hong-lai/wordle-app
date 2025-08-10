@@ -2,6 +2,12 @@ import WordleGame, { type GameMode } from "@wordle/WordleGame";
 import TTLMap from "../utils/TTLMap";
 
 type WordleGameInstanceType = InstanceType<typeof WordleGame>;
+type ScoreBoardType = {
+  mode: GameMode,
+  hasWon: boolean,
+  playerName: string;
+  numGuess: number;
+}[]
 
 declare global {
   namespace Express {
@@ -16,6 +22,7 @@ const onHourInMs = 60 * 60 * 1000;
 export default class WordleService {
   //  Storing the serialized data instead of the object itself would be better.
   private gameInstances = new TTLMap<string, WordleGameInstanceType>(onHourInMs, onHourInMs);
+  private scoreBoard: ScoreBoardType = [];
 
   createGame(sessionId: string, playerName?: string, mode?: GameMode, maxGuessPerPlayer?: number, predefinedList?: string[]) {
     if (this.gameInstances.has(sessionId)) {
@@ -47,8 +54,18 @@ export default class WordleService {
     return game;
   }
 
-  private deleteGame(sessionId: string) {
+  deleteGame(sessionId: string) {
     return this.gameInstances.delete(sessionId);
+  }
+
+  getPlayerInfo(sessionId: string) {
+    const game = this.getGame(sessionId);
+    const player = game.getCurrentPlayer();
+
+    return {
+      playerName: player.name,
+      numGuess: player.getNumGuess()
+    };
   }
 
   guess(sessionId: string, word: string) {
@@ -70,7 +87,11 @@ export default class WordleService {
     const game = this.getGame(sessionId);
 
     if (game.hasWon() || game.hasLost()) {
-      this.deleteGame(sessionId);
+      this.scoreBoard.push({
+        mode: game.getMode(),
+        hasWon: game.hasWon(),
+        ...this.getPlayerInfo(sessionId)
+      });
 
       return {
         answer: game.getWordleAnswer(),
@@ -79,5 +100,24 @@ export default class WordleService {
     }
 
     throw new Error("Game not over yet");
+  }
+
+  getScoreBoard() {
+    return this.scoreBoard;
+  }
+
+  getLastGame(sessionId: string) {
+    const game = this.getGame(sessionId);
+    const playerName = game.getCurrentPlayer().name;
+    const history = game.getHistory();
+    const mode = game.getMode();
+    const maxGuessPerPlayer = game.getMaxGuessPerPlayer();
+
+    return {
+      playerName,
+      history,
+      mode,
+      maxGuessPerPlayer
+    };
   }
 }

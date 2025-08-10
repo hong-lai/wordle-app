@@ -17,12 +17,12 @@ const defaultPredefinedList = wordleList
 
 export default class WordleGame {
     private maxGuessPerPlayer: number
-    private players: Map<Player, number>
     private wordle: Wordle | HostCheatWordle;
     private currentPlayer: Player;
     private predefinedList: string[];
+    private mode: GameMode;
+    private history: WordleCheckResult[] = []
 
-    // assume at least one player is needed
     constructor({
         mode = "NORMAL",
         predefinedList = defaultPredefinedList,
@@ -34,6 +34,8 @@ export default class WordleGame {
 
         this.predefinedList = predefinedList.map(word => word.toUpperCase());
 
+        this.mode = mode;
+
         if (mode === 'NORMAL') {
             this.wordle = new Wordle(this.pickRandomAnswer());
 
@@ -41,9 +43,15 @@ export default class WordleGame {
             this.wordle = new HostCheatWordle(this.predefinedList);
         }
 
-        this.players = new Map();
-        const player = this.addPlayer(playerName);
-        this.currentPlayer = player;
+        this.currentPlayer = new Player(playerName);;
+    }
+    
+    getMode() {
+        return this.mode;
+    }
+
+    getHistory() {
+        return this.history;
     }
 
     getMaxGuessPerPlayer() {
@@ -61,22 +69,12 @@ export default class WordleGame {
         ).join('');
     }
 
-    addPlayer(name: string): Player {
-        const player = new Player(name);
-        this.setPlayer(player);
-        return player;
-    }
-
     setWordleAnswer(answer: string) {
         this.wordle.setAnswer(answer.toUpperCase());
     }
 
     getWordleAnswer() {
         return this.wordle.getAnswer();
-    }
-
-    private setPlayer(player: Player) {
-        this.players.set(player, this.players.size + 1);
     }
 
     private pickRandomAnswer() {
@@ -152,6 +150,8 @@ export default class WordleGame {
         this.currentPlayer.guess(guessedWord)
 
         const check = this.wordle.check(this.currentPlayer.getLastGuess());
+
+        this.history.push(check);
 
         return check;
     }
