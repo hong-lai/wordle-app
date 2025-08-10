@@ -2,11 +2,21 @@
   "name": "wordle-app",
   "version": "1.0.0",
   "main": "index.js",
+  "workspaces": ["client", "server"],
   "scripts": {
-    "start": "tsx ./src/index.ts",
-    "dev:server": "cd server && npm install && npm run dev",
-    "dev:client": "cd client && npm install && npm run dev",
-    "build": "tsc",
+    
+    "start:cli": "tsx ./src/index.ts",
+    "start": "npm run build && npm run start --workspace=server",
+    "start:server": "npm run start --workspace=server",
+    "start:client": "serve -l 5173 client/dist",
+
+    "dev:server": "npm run build:server && npm run dev --workspace=server",
+    "dev:client": "npm run build:client && npm run dev --workspace=client",
+
+    "build": "npm run build:client && npm run build:server && cp -r client/dist server/dist/server/src/public",
+    "build:server": "npm run build --workspace=server",
+    "build:client": "npm run build --workspace=client",
+
     "test": "tsx --experimental-test-coverage --test src/tests/**/*.ts"
   },
   "keywords": [],
