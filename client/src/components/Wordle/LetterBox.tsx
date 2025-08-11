@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Letter, Status } from '../../hooks/useGameState';
+import type { Letter, State } from '../../hooks/useGameState';
 
 function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
   const [pulse, setPulse] = useState(false);
@@ -12,11 +12,11 @@ function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
 
   const styles = useMemo(() => {
     const isChecked =
-      letter?.status === 'MISS' ||
-      letter?.status === 'PRESENT' ||
-      letter?.status === 'HIT';
+      letter?.state === 'MISS' ||
+      letter?.state === 'PRESENT' ||
+      letter?.state === 'HIT';
 
-    const checkedColors: Record<Status, string> = {
+    const checkedColors: Record<State, string> = {
       MISS: '#9b9b9b',
       PRESENT: '#e4c422',
       HIT: '#0fc64f',
@@ -45,7 +45,7 @@ function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
     const back: React.CSSProperties = {
       ...sharedFace,
       transform: 'rotateX(180deg)',
-      backgroundColor: checkedColors[letter?.status ?? 'UNKNOWN'],
+      backgroundColor: checkedColors[letter?.state ?? 'UNKNOWN'],
     };
 
     return { box, front, back };

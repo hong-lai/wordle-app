@@ -18,9 +18,9 @@ export interface InputController {
 
 type LastGame = {
   playerName: string;
-  history: { details: Word }[];
+  history: Word[];
   mode: GameMode;
-  maxGuessPerPlayer: number;
+  maxGuess: number;
 };
 
 // Word length
@@ -43,7 +43,7 @@ function App() {
 
         // Restore game state if there is at least one history
         if (lastGame?.data?.history?.length) {
-          const { history, maxGuessPerPlayer, mode, playerName } =
+          const { history, maxGuess, mode, playerName } =
             lastGame.data as LastGame;
 
           if (mode === 'CHEAT') {
@@ -51,7 +51,7 @@ function App() {
           } else {
             dispatchGameSetting({
               type: 'set_normal_mode',
-              payload: { maxRow: maxGuessPerPlayer },
+              payload: { maxRow: maxGuess },
             });
           }
 
@@ -63,12 +63,12 @@ function App() {
           const dummyRowCount =
             mode === 'CHEAT'
               ? Math.max(1, gameSetting.minRow - history.length)
-              : maxGuessPerPlayer - history.length;
+              : maxGuess - history.length;
 
           dispatchGameState({
             type: 'restored_words',
             payload: {
-              words: history.map((entry) => entry.details),
+              words: history,
               dummyRowCount,
             },
           });
@@ -100,7 +100,7 @@ function App() {
       await api.post('/create', {
         name: gameSetting.playerName,
         mode: gameSetting.mode,
-        maxGuessPerPlayer: gameSetting.maxRow,
+        maxGuess: gameSetting.maxRow,
       });
 
       setTimeoutMessage('Enter a 5-letter word, then press Enter.');
@@ -150,20 +150,20 @@ function App() {
               return;
             }
 
-            const wordDetails = response.data.message.details as Word;
+            const wordToReplace = response.data.message as Word;
 
             setGameStatus('WAITING');
 
             dispatchGameState({
               type: 'replaced_current_word',
-              payload: { wordToReplace: wordDetails },
+              payload: { wordToReplace },
             });
 
             // Wait until the animation of LetterBox has finished, not elegant, but it works.
             setTimeoutMessage('🧪 Validating your guess...', 2500).then(
               async () => {
-                const hitCount = wordDetails.reduce(
-                  (sum, curr) => (curr.status === 'HIT' ? 1 : 0) + sum,
+                const hitCount = wordToReplace.reduce(
+                  (sum, curr) => (curr.state === 'HIT' ? 1 : 0) + sum,
                   0
                 );
 
@@ -197,8 +197,8 @@ function App() {
                 if (hitCount === 4) {
                   setTimeoutMessage("You're almost there!");
                 } else {
-                  const presentCount = wordDetails.reduce(
-                    (sum, curr) => (curr.status === 'PRESENT' ? 1 : 0) + sum,
+                  const presentCount = wordToReplace.reduce(
+                    (sum, curr) => (curr.state === 'PRESENT' ? 1 : 0) + sum,
                     0
                   );
                   setTimeoutMessage(

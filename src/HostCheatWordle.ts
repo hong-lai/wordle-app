@@ -33,18 +33,9 @@ export default class HostCheatWordle extends Wordle {
             const wordle = new Wordle(word);
             const result = wordle.check(guess)
 
-            const hit = result.details.reduce((sum, curr) => {
-                sum += (curr.status === 'HIT' ? 1 : 0)
-                return sum
-            }, 0);
-            const present = result.details.reduce((sum, curr) => {
-                sum += (curr.status === 'PRESENT' ? 1 : 0)
-                return sum
-            }, 0);
-            const miss = result.details.reduce((sum, curr) => {
-                sum += (curr.status === 'MISS' ? 1 : 0)
-                return sum
-            }, 0);
+            const hit = result.reduce((sum, curr) => sum + (curr.state === 'HIT' ? 1 : 0), 0);
+            const present = result.reduce((sum, curr) => sum + (curr.state === 'PRESENT' ? 1 : 0), 0);
+            const miss = result.reduce((sum, curr) => sum + (curr.state === 'MISS' ? 1 : 0), 0);
 
             const wordSize = word.length;
 
@@ -68,12 +59,10 @@ export default class HostCheatWordle extends Wordle {
         } else {
             this.candidates = remainingCandidates;
 
-            return {
-                details: guess.split('').map(letter => ({
-                    letter,
-                    status: "MISS"
-                }))
-            };
+            return guess.split('').map(letter => ({
+                letter,
+                state: "MISS"
+            }));
         }
     }
 }

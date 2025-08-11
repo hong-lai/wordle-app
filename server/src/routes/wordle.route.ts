@@ -11,10 +11,10 @@ export const wordleService = new WordleService();
 router.post('/create', (req, res) => {
   const playerName = req.body.name?.toString();
   const mode = req.body.mode?.toString();
-  const parsedMaxGuessPerPlayer = parseInt(req.body.maxGuessPerPlayer);
-  const maxGuessPerPlayer = isNaN(parseInt(req.body.maxGuessPerPlayer)) ? undefined : parsedMaxGuessPerPlayer
+  const parsedmaxGuess = parseInt(req.body.maxGuess);
+  const maxGuess = isNaN(parseInt(req.body.maxGuess)) ? undefined : parsedmaxGuess
 
-  const meta = wordleService.createGame(req.session.id, playerName, mode, maxGuessPerPlayer);
+  const meta = wordleService.createGame(req.session.id, playerName, mode, maxGuess);
 
   res.status(201).json({ success: true, message: "Successfully created", meta });
 });

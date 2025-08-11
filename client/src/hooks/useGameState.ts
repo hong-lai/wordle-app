@@ -1,9 +1,9 @@
 import { useReducer } from "react";
 
-export type Status = 'HIT' | 'PRESENT' | 'MISS' | 'UNKNOWN';
+export type State = 'HIT' | 'PRESENT' | 'MISS' | 'UNKNOWN';
 export type Letter = {
   letter: string;
-  status: Status;
+  state: State;
 };
 export type Word = Letter[];
 
@@ -40,7 +40,7 @@ function useGameState(minRow: number = 6) {
             ...prevState,
             words: [
               ...words.slice(0, currentRowIdx),
-              words[currentRowIdx].concat({ letter, status: 'UNKNOWN' }),
+              words[currentRowIdx].concat({ letter, state: 'UNKNOWN' }),
               ...words.slice(currentRowIdx + 1),
             ],
           };
