@@ -8,13 +8,12 @@ export type GameMode = "NORMAL" | "CHEAT"
 
 type WordleGameOption = {
     mode: GameMode,
-    predefinedList: string[],
+    predefinedList: string[], // This should be only used for Testing purpose
     maxGuess: number,
     playerName: string,
-    history: WordleCheckResult[]
 }
 
-const predefinedList = wordleList.map(word => word.toUpperCase());
+const defaultPredefinedList = wordleList.map(word => word.toUpperCase());
 
 export default class WordleGame {
     private wordle: Wordle | HostCheatWordle;
@@ -22,16 +21,20 @@ export default class WordleGame {
     private predefinedList: string[];
     private maxGuess: number
     private mode: GameMode;
-    private history: WordleCheckResult[];
+    private history: WordleCheckResult[] = [];
 
     constructor({
         mode = "NORMAL",
-        maxGuess = mode === 'CHEAT' ? -1 : 6,
+        maxGuess = 6,
         playerName = 'annoymous',
-        history = [],
+        predefinedList = defaultPredefinedList
     }: Partial<WordleGameOption> = {}) {
 
-        this.maxGuess = maxGuess;
+        if (mode === 'CHEAT') {
+            this.maxGuess = -1;
+        } else {
+            this.maxGuess = maxGuess;
+        }
 
         this.predefinedList = predefinedList
 
@@ -45,8 +48,6 @@ export default class WordleGame {
         }
 
         this.player = new Player(playerName);
-
-        this.history = history;
     }
 
     static fromSerialized(serialized: string) {
@@ -58,37 +59,34 @@ export default class WordleGame {
             const mode = parts[2] as GameMode;
             const maxGuess = Number(parts[3]);
             const answer = parts[4];
-            const history = parts[5] === '' ? [] : parts[5].split(',').map(guess => {
-                const guessResult = guess.split('|');
-                const _history: WordleCheckResult = [];
+            // const history = parts[5] === '' ? [] : parts[5].split(',').map(guess => {
+            //     const guessResult = guess.split('|');
+            //     const _history: WordleCheckResult = [];
 
-                for (let i = 0; i < guessResult[0].length; i++) {
-                    const letter = guessResult[0][i];
-                    const state = guessResult[1][i];
+            //     for (let i = 0; i < guessResult[0].length; i++) {
+            //         const letter = guessResult[0][i];
+            //         const state = guessResult[1][i];
 
-                    _history.push({
-                        letter,
-                        state: state === 'O' ? 'HIT' : state === '?' ? 'PRESENT' : 'MISS'
-                    })
-                }
+            //         _history.push({
+            //             letter,
+            //             state: state === 'O' ? 'HIT' : state === '?' ? 'PRESENT' : 'MISS'
+            //         })
+            //     }
 
-                return _history;
-            });
+            //     return _history;
+            // });
 
             const game = new WordleGame({
                 mode,
-                predefinedList,
+                predefinedList: defaultPredefinedList,
                 maxGuess,
                 playerName,
-                history
             });
 
             game.setWordleAnswer(answer);
 
-            const player = game.getPlayer();
-
             guesses.forEach(guessedWord => {
-                player.guess(guessedWord);
+                game.guess(guessedWord);
             });
 
             return game;
@@ -107,11 +105,11 @@ export default class WordleGame {
             this.mode,
             this.maxGuess,
             this.wordle.getAnswer(),
-            this.history.map((result) => {
-                const word = result.map(letter => letter.letter).join('');
-                const states = WordleGame.convertResultToText(result);
-                return [word, states].join('|')
-            }).join(',')
+            // this.history.map((result) => {
+            //     const word = result.map(letter => letter.letter).join('');
+            //     const states = WordleGame.convertResultToText(result);
+            //     return [word, states].join('|')
+            // }).join(',')
 
         ].join('#');
     }
