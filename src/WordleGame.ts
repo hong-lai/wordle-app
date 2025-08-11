@@ -60,9 +60,9 @@ export default class WordleGame {
             const answer = parts[4];
             const history = parts[5] === '' ? [] : parts[5].split(',').map(guess => {
                 const guessResult = guess.split('|');
-                const _history = []
+                const _history: WordleCheckResult = [];
 
-                for (let i = 0; i < guess[0].length; i++) {
+                for (let i = 0; i < guessResult[0].length; i++) {
                     const letter = guessResult[0][i];
                     const state = guessResult[1][i];
 
@@ -73,7 +73,7 @@ export default class WordleGame {
                 }
 
                 return _history;
-            }) as WordleCheckResult[];
+            });
 
             const game = new WordleGame({
                 mode,
