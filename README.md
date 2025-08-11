@@ -18,7 +18,7 @@ Please ensure you have the minimum Node.js version of 23.x installed.
    ```
 2. Run the app:
    ```bash
-   npm start
+   npm run start:cli
    ```
 3. Run tests:
    ```bash
