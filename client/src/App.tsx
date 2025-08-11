@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from './layouts/Header';
 import Keyboard from './components/Keyboard/Keyboard';
-import Board from './components/Wordle/Board';
+import Board, { type BoardMethod } from './components/Wordle/Board';
 import MessageBar from './components/MessageBar';
 import Setting from './components/Setting';
 import useTimeoutState from './hooks/useTimoutState';
@@ -31,7 +31,7 @@ function App() {
   const [gameSetting, dispatchGameSetting] = useGameSetting();
   const [gameState, dispatchGameState] = useGameState(gameSetting.minRow);
   const [gameStatus, setGameStatus] = useState<GameStatus>('LOADING');
-  const [shakeRow, setShakeRow] = useState<number>();
+  const boardRef = useRef<BoardMethod>(null);
 
   const currentWord = gameState.words[gameState.currentRowIdx];
 
@@ -127,8 +127,6 @@ function App() {
       },
 
       async enter() {
-        setShakeRow(undefined);
-
         if (currentWord.length !== MAX_SIZE) {
           setTimeoutMessage('Please enter a 5-letter word.', 5000);
           return;
@@ -146,7 +144,7 @@ function App() {
 
             if (response.data.success === false) {
               setTimeoutMessage(response.data.message, 5000);
-              setShakeRow(gameState.currentRowIdx);
+              boardRef?.current?.shake(gameState.currentRowIdx);
               return;
             }
 
@@ -160,7 +158,7 @@ function App() {
             });
 
             // Wait until the animation of LetterBox has finished, not elegant, but it works.
-            setTimeoutMessage('🧪 Validating your guess...', 2500).then(
+            setTimeoutMessage('🧪 Validating your guess...', 1500).then(
               async () => {
                 const hitCount = wordToReplace.reduce(
                   (sum, curr) => (curr.state === 'HIT' ? 1 : 0) + sum,
@@ -234,7 +232,7 @@ function App() {
             return () => {};
           }
 
-          return target[prop].bind(target);
+          return target[prop];
         },
       }),
     [_inputController, gameStatus]
@@ -279,14 +277,17 @@ function App() {
               }}
             >
               <Board
+                ref={boardRef}
                 maxSize={MAX_SIZE}
                 words={gameState.words}
                 keyController={inputController}
-                shakeRow={shakeRow}
               />
             </div>
           </div>
-          <Keyboard onClick={handleKeyboardClick} />
+          <Keyboard
+            onClick={handleKeyboardClick}
+            highlightMap={gameState.keyHightlightMap}
+          />
         </>
       )}
     </>

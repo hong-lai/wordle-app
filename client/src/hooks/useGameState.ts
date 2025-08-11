@@ -1,4 +1,5 @@
 import { useReducer } from "react";
+import { letterColor } from "../components/Wordle/color";
 
 export type State = 'HIT' | 'PRESENT' | 'MISS' | 'UNKNOWN';
 export type Letter = {
@@ -17,11 +18,29 @@ type GameStateAction =
   | { type: 'deleted_letter' };
 
 
+const KeyHighlightMapReducer = (prev: Record<string, string>, letter: Letter) => {
+  let color = letterColor.MISS;
+
+  if (prev[letter.letter] === letterColor.HIT || letter.state === 'HIT') {
+    color = letterColor.HIT;
+  }
+
+  else if (prev[letter.letter] === letterColor.PRESENT || letter.state === 'PRESENT') {
+    color = letterColor.PRESENT;
+  }
+
+  return {
+    ...prev,
+    [letter.letter]: color
+  };
+}
+
 function useGameState(minRow: number = 6) {
 
   const generateInitialState = (minRow: number) => ({
     words: Array.from({ length: minRow }, () => []) as Word[],
     currentRowIdx: 0,
+    keyHightlightMap: {} as Record<string, string>
   });
 
   return useReducer(
@@ -56,7 +75,8 @@ function useGameState(minRow: number = 6) {
               ...words,
               ...Array.from({ length: dummyRowCount }, () => []),
             ],
-            currentRowIdx: words.length
+            currentRowIdx: words.length,
+            keyHightlightMap: words.flat().reduce(KeyHighlightMapReducer, {})
           };
         }
 
@@ -68,7 +88,7 @@ function useGameState(minRow: number = 6) {
           };
         }
 
-        case 'proceeded_row' : {
+        case 'proceeded_row': {
           return {
             ...prevState,
             currentRowIdx: prevState.currentRowIdx + 1
@@ -101,6 +121,7 @@ function useGameState(minRow: number = 6) {
               [...wordToReplace],
               ...words.slice(currentRowIdx + 1),
             ],
+            keyHightlightMap: wordToReplace.reduce(KeyHighlightMapReducer, prevState.keyHightlightMap)
           };
         }
 

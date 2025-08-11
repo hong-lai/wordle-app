@@ -1,27 +1,45 @@
 import { motion } from 'motion/react';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useImperativeHandle, type Ref, useRef } from 'react';
 import type { InputController } from '../../App';
 import WordleRow from './WordRow';
 import type { Word } from '../../hooks/useGameState';
+
+export interface BoardMethod {
+  shake(rowIdx: number): void;
+}
 
 function Board({
   words,
   maxSize,
   keyController,
-  shakeRow
+  ref,
 }: {
   words: Word[];
   maxSize: number;
   keyController: InputController;
-  shakeRow?: number
+  ref: Ref<BoardMethod>
 }) {
-  const [shake, setShake] = useState(false);
+  const [shakeRow, setShakeRow] = useState(-1);
+  const shakeId = useRef<NodeJS.Timeout>(null)
 
-  useEffect(() => {
-    if (shakeRow) {
-      setShake(true);
-    }
-  }, [shakeRow])
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        shake(rowIdx: number) {
+          if (shakeId.current) {
+            return;
+          }
+          setShakeRow(rowIdx);
+          shakeId.current = setTimeout(() => {
+            setShakeRow(-1);
+            shakeId.current = null;
+          }, 500);
+        },
+      };
+    },
+    []
+  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -73,8 +91,7 @@ function Board({
       {words.map((_, i) => (
         <div
           key={i}
-          data-animation={(shake && i === shakeRow) ? 'shake' : 'none'}
-          onAnimationEnd={() => (setShake(false))}
+          data-animation={shakeRow === i ? 'shake' : 'none'}
         >
           <WordleRow key={i} word={words[i]} size={maxSize} />
         </div>

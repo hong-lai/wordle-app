@@ -104,6 +104,11 @@ export default class WordleService {
     const mode = game.getMode();
     const maxGuess = game.getMaxGuess();
 
+    if (game.getPlayer().getNumGuess() >= maxGuess) {
+      throw new Error('Hit the max guess');
+      gameLocalDb.delete(sessionId);
+    }
+
     return {
       playerName,
       history,

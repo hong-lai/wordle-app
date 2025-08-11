@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Letter, State } from '../../hooks/useGameState';
+import { letterColor } from './color';
 
 function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
   const [pulse, setPulse] = useState(false);
@@ -16,12 +17,7 @@ function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
       letter?.state === 'PRESENT' ||
       letter?.state === 'HIT';
 
-    const checkedColors: Record<State, string> = {
-      MISS: '#9b9b9b',
-      PRESENT: '#e4c422',
-      HIT: '#0fc64f',
-      UNKNOWN: 'none',
-    };
+    const checkedColors: Record<State, string> = letterColor;
 
     const box: React.CSSProperties = {
       height: '60px',
@@ -33,7 +29,7 @@ function LetterBox({ letter, index }: { letter?: Letter; index: number }) {
       position: 'relative',
       transformStyle: 'preserve-3d',
       transition: 'transform 450ms ease-out',
-      transitionDelay: `${450 * index + 450}ms`,
+      transitionDelay: `${200 * index + 170}ms`,
       transform: isChecked ? 'rotateX(180deg)' : 'none',
       textShadow: '0 1px 0 #252525a1',
     };

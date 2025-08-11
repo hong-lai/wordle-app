@@ -11,12 +11,30 @@ const keyboardStyles: React.CSSProperties = {
   rowGap: '8px',
 };
 
-function Keyboard({ onClick }: { onClick: (key: string) => void }) {
+function Keyboard({
+  onClick,
+  highlightMap,
+}: {
+  onClick: (key: string) => void;
+  highlightMap: Record<string, string>;
+}) {
   return (
     <div style={keyboardStyles}>
-      <KeyRow onClick={onClick} keyRow={upperKeyRow} />
-      <KeyRow onClick={onClick} keyRow={middleKeyRow} />
-      <KeyRow onClick={onClick} keyRow={bottomKeyRow} />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={upperKeyRow}
+      />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={middleKeyRow}
+      />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={bottomKeyRow}
+      />
     </div>
   );
 }

@@ -39,7 +39,7 @@ function useGameSetting() {
         return {
           ...prevState,
           mode: 'NORMAL' as GameMode,
-          maxRow: action?.payload?.maxRow ?? prevState.maxRow,
+          maxRow: action?.payload?.maxRow ?? (prevState.maxRow === Infinity ? 6 : prevState.maxRow),
           minRow: Math.min(action?.payload?.maxRow ?? prevState.maxRow, 6),
         };
       }

@@ -3,21 +3,26 @@ import React, { useMemo } from 'react';
 function Key({
   keyContent,
   onClick,
+  bgColor
 }: {
   keyContent: string;
   onClick: (key: string) => void;
+  bgColor: string
 }) {
   const keyStyles = useMemo(() => {
     const styles: React.CSSProperties = {
+      textShadow: '1px 1px #474747',
       border: '2px solid #474747',
       padding: '0 6px',
       height: '50px',
       minWidth: '36px',
       fontSize: '18px',
-      fontWeight: '600',
-      color: '#b7b7b7',
-      backgroundColor: '#1a1a1a',
+      fontWeight: '900',
+      color: '#d7d7d7',
+      backgroundColor: bgColor,
       userSelect: 'none',
+      transition: 'background 1s',
+      transitionDelay: '1.3s'
     };
 
     if (keyContent.length > 1) {
@@ -25,7 +30,7 @@ function Key({
     }
 
     return styles;
-  }, [keyContent.length]);
+  }, [keyContent.length, bgColor]);
 
   return (
     <button style={keyStyles} onClick={() => onClick(keyContent)}>
