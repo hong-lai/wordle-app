@@ -266,9 +266,17 @@ function App() {
           <MessageBar message={timeoutMessage} />
           <div style={{ position: 'relative' }}>
             {(gameStatus === 'WIN' || gameStatus === 'LOSE') && (
-              <button style={buttonStyles} onClick={initializeGame}>
-                Play Again!
-              </button>
+              <div style={buttonContainerStyles}>
+                <button style={buttonStyles} onClick={initializeGame}>
+                  Play Again!
+                </button>
+                <button
+                  style={buttonStyles}
+                  onClick={() => setGameStatus('LOADING')}
+                >
+                  Back
+                </button>
+              </div>
             )}
             <div
               style={{
@@ -294,12 +302,18 @@ function App() {
   );
 }
 
-const buttonStyles: React.CSSProperties = {
+const buttonContainerStyles: React.CSSProperties = {
+  display: 'grid',
+  placeContent: 'center',
+  gap: '10px',
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
   zIndex: 20,
+};
+
+const buttonStyles: React.CSSProperties = {
   padding: '10px 18px',
   backgroundColor: '#471959',
   color: '#cecece',
