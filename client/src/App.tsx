@@ -8,6 +8,7 @@ import useTimeoutState from './hooks/useTimoutState';
 import useGameState, { type Word } from './hooks/useGameState';
 import useGameSetting, { type GameMode } from './hooks/useGameSetting';
 import api from './config/api';
+import Confetti from 'react-confetti';
 
 export type GameStatus = 'WIN' | 'LOSE' | 'PLAYING' | 'LOADING' | 'WAITING';
 export interface InputController {
@@ -158,53 +159,51 @@ function App() {
             });
 
             // Wait until the animation of LetterBox has finished, not elegant, but it works.
-            setTimeoutMessage('🧪 Validating your guess...', 1500).then(
-              async () => {
-                const hitCount = wordToReplace.reduce(
-                  (sum, curr) => (curr.state === 'HIT' ? 1 : 0) + sum,
-                  0
-                );
+            await setTimeoutMessage('🧪 Validating your guess...', 1500);
 
-                if (hitCount === MAX_SIZE) {
-                  await api.post('/acknowledge');
-                  setTimeoutMessage('🎊 Congrats! You won.');
-                  setGameStatus('WIN');
-                  return;
-                }
-
-                const round = gameState.currentRowIdx + 1;
-
-                if (round >= gameSetting.maxRow) {
-                  const response = await api.post('/acknowledge');
-
-                  const correctAnswer = response.data.answer;
-                  setTimeoutMessage('The correct answer is ' + correctAnswer);
-                  setGameStatus('LOSE');
-                  return;
-                }
-
-                // Add more row if hits the min row
-                if (round >= gameSetting.minRow) {
-                  dispatchGameState({ type: 'added_row' });
-                } else {
-                  dispatchGameState({ type: 'proceeded_row' });
-                }
-
-                setGameStatus('PLAYING');
-
-                if (hitCount === 4) {
-                  setTimeoutMessage("You're almost there!");
-                } else {
-                  const presentCount = wordToReplace.reduce(
-                    (sum, curr) => (curr.state === 'PRESENT' ? 1 : 0) + sum,
-                    0
-                  );
-                  setTimeoutMessage(
-                    `🟩 Hit: ${hitCount}, 🟨 Present: ${presentCount}`
-                  );
-                }
-              }
+            const hitCount = wordToReplace.reduce(
+              (sum, curr) => (curr.state === 'HIT' ? 1 : 0) + sum,
+              0
             );
+
+            if (hitCount === MAX_SIZE) {
+              await api.post('/acknowledge');
+              setTimeoutMessage('🎊 Congrats! You won.');
+              setGameStatus('WIN');
+              return;
+            }
+
+            const round = gameState.currentRowIdx + 1;
+
+            if (round >= gameSetting.maxRow) {
+              const response = await api.post('/acknowledge');
+
+              const correctAnswer = response.data.answer;
+              setTimeoutMessage('The correct answer is ' + correctAnswer);
+              setGameStatus('LOSE');
+              return;
+            }
+
+            // Add more row if hits the min row
+            if (round >= gameSetting.minRow) {
+              dispatchGameState({ type: 'added_row' });
+            } else {
+              dispatchGameState({ type: 'proceeded_row' });
+            }
+
+            setGameStatus('PLAYING');
+
+            if (hitCount === 4) {
+              setTimeoutMessage("You're almost there!");
+            } else {
+              const presentCount = wordToReplace.reduce(
+                (sum, curr) => (curr.state === 'PRESENT' ? 1 : 0) + sum,
+                0
+              );
+              setTimeoutMessage(
+                `🟩 Hit: ${hitCount}, 🟨 Present: ${presentCount}`
+              );
+            }
           } catch (error) {
             if (error instanceof Error) {
               setTimeoutMessage(error.message, 5000);
@@ -254,6 +253,7 @@ function App() {
   return (
     <>
       <Header />
+      {gameStatus === 'WIN' && <Confetti />}
       {gameStatus === 'LOADING' && (
         <Setting
           state={gameSetting}
