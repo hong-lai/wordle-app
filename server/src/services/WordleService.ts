@@ -4,8 +4,10 @@ import TTLMap from "../utils/TTLMap";
 type ScoreBoardType = {
   mode: GameMode,
   hasWon: boolean,
-  playerName: string;
-  numGuess: number;
+  playerName: string,
+  numGuess: number,
+  maxGuess: number,
+  answer: string
 }[]
 
 
@@ -81,6 +83,8 @@ export default class WordleService {
       this.scoreBoard.push({
         mode: game.getMode(),
         hasWon: game.hasWon(),
+        answer: game.getWordleAnswer(),
+        maxGuess: game.getMaxGuess(),
         ...this.getPlayerInfo(sessionId)
       });
 
@@ -106,7 +110,6 @@ export default class WordleService {
 
     if (game.getPlayer().getNumGuess() >= maxGuess) {
       throw new Error('Hit the max guess');
-      gameLocalDb.delete(sessionId);
     }
 
     return {

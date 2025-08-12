@@ -7,6 +7,8 @@ type ScoreBoard = {
   numGuess: number;
   hasWon: boolean;
   mode: GameMode;
+  maxGuess: number;
+  answer: string;
 }[];
 
 function ScoreBoard() {
@@ -32,6 +34,7 @@ function ScoreBoard() {
           <th style={headerStyles}>Name</th>
           <th style={headerStyles}>Mode</th>
           <th style={headerStyles}>Guess Round</th>
+          <th style={headerStyles}>Answer</th>
           <th style={headerStyles}>Result</th>
         </tr>
       </thead>
@@ -52,7 +55,8 @@ function ScoreBoard() {
                   ? 'Cheat'
                   : 'Unknown'}
               </td>
-              <td>{row.numGuess}</td>
+              <td>{row.numGuess} / {row.maxGuess || '∞'}</td>
+              <td>{row.answer}</td>
               <td style={row.hasWon ? winStyles : loseStyles}>
                 {row.hasWon ? 'Win' : 'Lose'}
               </td>
