@@ -1,22 +1,40 @@
-import KeyboardKeyRow from './KeyboardKeyRow';
+import KeyRow from './KeyRow';
 
 const upperKeyRow = 'QWERTYUIOP'.split('');
 const middleKeyRow = 'ASDFGHJKL'.split('');
 const bottomKeyRow = ['Enter', ...'ZXCVBNM'.split(''), 'Delete'];
 
-function Keyboard({ onClick }: { onClick: (key: string) => void }) {
-  const keyboardStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    rowGap: '8px',
-  };
+const keyboardStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  rowGap: '8px',
+};
 
+function Keyboard({
+  onClick,
+  highlightMap,
+}: {
+  onClick: (key: string) => void;
+  highlightMap: Record<string, string>;
+}) {
   return (
     <div style={keyboardStyles}>
-      <KeyboardKeyRow onClick={onClick} keyRow={upperKeyRow} />
-      <KeyboardKeyRow onClick={onClick} keyRow={middleKeyRow} />
-      <KeyboardKeyRow onClick={onClick} keyRow={bottomKeyRow} />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={upperKeyRow}
+      />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={middleKeyRow}
+      />
+      <KeyRow
+        onClick={onClick}
+        highlightMap={highlightMap}
+        keyRow={bottomKeyRow}
+      />
     </div>
   );
 }

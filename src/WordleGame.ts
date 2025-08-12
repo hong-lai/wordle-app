@@ -8,31 +8,37 @@ export type GameMode = "NORMAL" | "CHEAT"
 
 type WordleGameOption = {
     mode: GameMode,
-    predefinedList: string[],
-    maxGuessPerPlayer: number,
-    playerName: string
+    predefinedList: string[], // This should be only used for Testing purpose
+    maxGuess: number,
+    playerName: string,
 }
 
-const defaultPredefinedList = wordleList
+const defaultPredefinedList = wordleList.map(word => word.toUpperCase());
 
 export default class WordleGame {
-    private maxGuessPerPlayer: number
-    private players: Map<Player, number>
     private wordle: Wordle | HostCheatWordle;
-    private currentPlayer: Player;
+    private player: Player;
     private predefinedList: string[];
+    private maxGuess: number
+    private mode: GameMode;
+    private history: WordleCheckResult[] = [];
 
-    // assume at least one player is needed
     constructor({
         mode = "NORMAL",
-        predefinedList = defaultPredefinedList,
-        maxGuessPerPlayer = mode === 'CHEAT' ? Infinity : 6,
-        playerName = 'annoymous'
+        maxGuess = 6,
+        playerName = 'annoymous',
+        predefinedList = defaultPredefinedList
     }: Partial<WordleGameOption> = {}) {
 
-        this.maxGuessPerPlayer = maxGuessPerPlayer;
+        if (mode === 'CHEAT') {
+            this.maxGuess = -1;
+        } else {
+            this.maxGuess = maxGuess;
+        }
 
-        this.predefinedList = predefinedList.map(word => word.toUpperCase());
+        this.predefinedList = predefinedList
+
+        this.mode = mode;
 
         if (mode === 'NORMAL') {
             this.wordle = new Wordle(this.pickRandomAnswer());
@@ -41,30 +47,94 @@ export default class WordleGame {
             this.wordle = new HostCheatWordle(this.predefinedList);
         }
 
-        this.players = new Map();
-        const player = this.addPlayer(playerName);
-        this.currentPlayer = player;
+        this.player = new Player(playerName);
     }
 
-    getMaxGuessPerPlayer() {
-        return this.maxGuessPerPlayer;
+    static fromSerialized(serialized: string) {
+        try {
+            const parts = serialized.split('#')
+
+            const playerName = parts[0];
+            const guesses = parts[1] === '' ? [] : parts[1].split(',');
+            const mode = parts[2] as GameMode;
+            const maxGuess = Number(parts[3]);
+            const answer = parts[4];
+            // const history = parts[5] === '' ? [] : parts[5].split(',').map(guess => {
+            //     const guessResult = guess.split('|');
+            //     const _history: WordleCheckResult = [];
+
+            //     for (let i = 0; i < guessResult[0].length; i++) {
+            //         const letter = guessResult[0][i];
+            //         const state = guessResult[1][i];
+
+            //         _history.push({
+            //             letter,
+            //             state: state === 'O' ? 'HIT' : state === '?' ? 'PRESENT' : 'MISS'
+            //         })
+            //     }
+
+            //     return _history;
+            // });
+
+            const game = new WordleGame({
+                mode,
+                predefinedList: defaultPredefinedList,
+                maxGuess,
+                playerName,
+            });
+
+            game.setWordleAnswer(answer);
+
+            guesses.forEach(guessedWord => {
+                game.guess(guessedWord);
+            });
+
+            return game;
+
+        } catch (erorr) {
+            throw new Error('Error parsing the serialized data.')
+        }
     }
 
-    getCurrentPlayer() {
-        return this.currentPlayer;
+    // Output serialized data
+    toSerialized() {
+        return [
+            this.player.name,
+            this.player.getGuesses().join(','),
+
+            this.mode,
+            this.maxGuess,
+            this.wordle.getAnswer(),
+            // this.history.map((result) => {
+            //     const word = result.map(letter => letter.letter).join('');
+            //     const states = WordleGame.convertResultToText(result);
+            //     return [word, states].join('|')
+            // }).join(',')
+
+        ].join('#');
+    }
+
+    getMode() {
+        return this.mode;
+    }
+
+    getHistory() {
+        return this.history;
+    }
+
+    getMaxGuess() {
+        return this.maxGuess === -1 ? Infinity : this.maxGuess;
+    }
+
+    getPlayer() {
+        return this.player;
     }
 
     static convertResultToText(result: WordleCheckResult) {
-        return result.details.map(detail =>
-            detail.status === 'HIT' ? 'O' :
-                detail.status === 'PRESENT' ? '?' : '_'
+        return result.map(letter =>
+            letter.state === 'HIT' ? 'O' :
+                letter.state === 'PRESENT' ? '?' : '_'
         ).join('');
-    }
-
-    addPlayer(name: string): Player {
-        const player = new Player(name);
-        this.setPlayer(player);
-        return player;
     }
 
     setWordleAnswer(answer: string) {
@@ -73,10 +143,6 @@ export default class WordleGame {
 
     getWordleAnswer() {
         return this.wordle.getAnswer();
-    }
-
-    private setPlayer(player: Player) {
-        this.players.set(player, this.players.size + 1);
     }
 
     private pickRandomAnswer() {
@@ -96,7 +162,7 @@ export default class WordleGame {
         let isGameOver = false;
 
         while (!isGameOver) {
-            const currentPlayer = this.currentPlayer;
+            const currentPlayer = this.player;
 
             const input = await rl.question(`[${currentPlayer.name}|${currentPlayer.getNumGuess() + 1}]: `);
 
@@ -114,8 +180,8 @@ export default class WordleGame {
 
             console.log('[WordleGame]:', WordleGame.convertResultToText(result));
 
-            const hitCount = result.details.reduce((sum, curr) => {
-                sum += (curr.status === 'HIT' ? 1 : 0)
+            const hitCount = result.reduce((sum, curr) => {
+                sum += (curr.state === 'HIT' ? 1 : 0)
                 return sum
             }, 0);
 
@@ -124,7 +190,7 @@ export default class WordleGame {
                 isGameOver = true;
                 break;
 
-            } else if (currentPlayer.getNumGuess() >= this.maxGuessPerPlayer) {
+            } else if (currentPlayer.getNumGuess() >= this.getMaxGuess()) {
                 console.log(`[WordleGame] 🙁 You lost. The anwser is ${this.wordle.getAnswer()}`)
                 isGameOver = true;
                 break;
@@ -149,18 +215,20 @@ export default class WordleGame {
             throw new Error("Word not in the predefined list.")
         }
 
-        this.currentPlayer.guess(guessedWord)
+        this.player.guess(guessedWord)
 
-        const check = this.wordle.check(this.currentPlayer.getLastGuess());
+        const check = this.wordle.check(this.player.getLastGuess());
+
+        this.history.push(check);
 
         return check;
     }
 
     hasWon() {
-        return this.currentPlayer.getNumGuess() > 0 && this.currentPlayer.getLastGuess() === this.getWordleAnswer();
+        return this.player.getNumGuess() > 0 && this.player.getLastGuess() === this.getWordleAnswer();
     }
 
     hasLost() {
-        return !this.hasWon() && this.currentPlayer.getNumGuess() >= this.maxGuessPerPlayer;
+        return !this.hasWon() && this.player.getNumGuess() >= this.getMaxGuess();
     }
 }

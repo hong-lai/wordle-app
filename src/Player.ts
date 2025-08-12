@@ -11,6 +11,10 @@ export default class Player {
         return this._name;
     }
 
+    getGuesses() {
+        return this.guessedWords;
+    }
+
     guess(word: string) {
         this.guessedWords.push(word);
     }

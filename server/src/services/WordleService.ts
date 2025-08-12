@@ -1,54 +1,59 @@
 import WordleGame, { type GameMode } from "@wordle/WordleGame";
 import TTLMap from "../utils/TTLMap";
 
-type WordleGameInstanceType = InstanceType<typeof WordleGame>;
+type ScoreBoardType = {
+  mode: GameMode,
+  hasWon: boolean,
+  playerName: string,
+  numGuess: number,
+  maxGuess: number,
+  answer: string
+}[]
 
-declare global {
-  namespace Express {
-    interface Request {
-      game: WordleGameInstanceType
-    }
-  }
-}
 
-const onHourInMs = 60 * 60 * 1000;
+const gameLocalDb = new TTLMap<string, string>({ ttl: '1h', checkInterval: '1h' });
 
 export default class WordleService {
-  //  Storing the serialized data instead of the object itself would be better.
-  private gameInstances = new TTLMap<string, WordleGameInstanceType>(onHourInMs, onHourInMs);
+  private scoreBoard: ScoreBoardType = [];
 
-  createGame(sessionId: string, playerName?: string, mode?: GameMode, maxGuessPerPlayer?: number, predefinedList?: string[]) {
-    if (this.gameInstances.has(sessionId)) {
-      this.gameInstances.delete(sessionId);
+  createGame(sessionId: string, playerName?: string, mode?: GameMode, maxGuess?: number) {
+    if (gameLocalDb.has(sessionId)) {
+      gameLocalDb.delete(sessionId);
     }
 
-    const _playerName = playerName ?? "Smart Player";
-    const _mode: GameMode = mode ?? 'NORMAL';
-    const _maxGuessPerPlayer = _mode === 'CHEAT' ? Infinity : maxGuessPerPlayer;
+    const option = {
+      playerName: playerName ?? "Player",
+      mode: mode ?? 'NORMAL',
+      maxGuess: mode === 'CHEAT' ? -1 : maxGuess,
+    }
 
-    const game = new WordleGame({
-      playerName: _playerName,
-      mode: _mode,
-      maxGuessPerPlayer: _maxGuessPerPlayer,
-      predefinedList
-    });
+    const game = new WordleGame(option);
 
-    this.gameInstances.set(sessionId, game);
-    return {
-      playerName: _playerName,
-      mode: _mode,
-      maxGuessPerPlayer: _maxGuessPerPlayer,
-    };
+    gameLocalDb.set(sessionId, game.toSerialized());
+
+    return option;
   }
 
   private getGame(sessionId: string): WordleGame {
-    const game = this.gameInstances.get(sessionId);
-    if (!game) throw new Error('Game not found');
-    return game;
+    const serialized = gameLocalDb.get(sessionId);
+
+    if (!serialized) throw new Error('Game not found');
+
+    return WordleGame.fromSerialized(serialized);
   }
 
-  private deleteGame(sessionId: string) {
-    return this.gameInstances.delete(sessionId);
+  deleteGame(sessionId: string) {
+    return gameLocalDb.delete(sessionId);
+  }
+
+  getPlayerInfo(sessionId: string) {
+    const game = this.getGame(sessionId);
+    const player = game.getPlayer();
+
+    return {
+      playerName: player.name,
+      numGuess: player.getNumGuess()
+    };
   }
 
   guess(sessionId: string, word: string) {
@@ -62,15 +67,26 @@ export default class WordleService {
       throw new Error("Already lost");
     }
 
-    return game.guess(word);
+    const res = game.guess(word);
+
+    // Update game state
+    gameLocalDb.set(sessionId, game.toSerialized());
+
+    return res;
   }
 
-  // acknowledge game over
+  // Acknowledge game over
   acknowledge(sessionId: string) {
     const game = this.getGame(sessionId);
 
     if (game.hasWon() || game.hasLost()) {
-      this.deleteGame(sessionId);
+      this.scoreBoard.push({
+        mode: game.getMode(),
+        hasWon: game.hasWon(),
+        answer: game.getWordleAnswer(),
+        maxGuess: game.getMaxGuess(),
+        ...this.getPlayerInfo(sessionId)
+      });
 
       return {
         answer: game.getWordleAnswer(),
@@ -79,5 +95,28 @@ export default class WordleService {
     }
 
     throw new Error("Game not over yet");
+  }
+
+  getScoreBoard() {
+    return this.scoreBoard;
+  }
+
+  getLastGame(sessionId: string) {
+    const game = this.getGame(sessionId);
+    const playerName = game.getPlayer().name;
+    const history = game.getHistory();
+    const mode = game.getMode();
+    const maxGuess = game.getMaxGuess();
+
+    if (game.getPlayer().getNumGuess() >= maxGuess) {
+      throw new Error('Hit the max guess');
+    }
+
+    return {
+      playerName,
+      history,
+      mode,
+      maxGuess
+    };
   }
 }

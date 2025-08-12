@@ -19,7 +19,3 @@ This client app needs the server to run properly, please ensure the server is ru
    ```bash
    npm run dev
    ```
-
-## Future Enhancements
-- Add multiplayer support
-- Add fancy animations on the UI

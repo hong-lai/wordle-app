@@ -1,14 +1,12 @@
-export type Status =
+export type State =
     "HIT" |
     "PRESENT" |
     "MISS";
 
 export type WordleCheckResult = {
-    details: {
-        letter: string;
-        status: Status;
-    }[];
-}
+    letter: string;
+    state: State;
+}[];
 
 export default class Wordle {
     private answer: string;
@@ -28,7 +26,7 @@ export default class Wordle {
     check(playerGuess: string): WordleCheckResult {
         const answer = this.answer;
 
-        const details: WordleCheckResult['details'] = [];
+        const checkResult: WordleCheckResult = [];
 
         // used for tracking the max possible number of presents
         const presentCounter = answer.split('').reduce((acc: Record<string, number>, curr, i) => {
@@ -41,28 +39,25 @@ export default class Wordle {
         }, {});
 
         for (let i = 0; i < answer.length; i++) {
-            let status: Status
+            let state: State
 
             const letter = playerGuess[i];
             const targetLetter = answer[i];
 
             if (letter === targetLetter) {
-                status = "HIT"
-            } else if (presentCounter[letter] > 0) {
-                presentCounter[letter] -= 1;
-                status = 'PRESENT'
+                state = "HIT"
+            } else if (presentCounter[letter]-- > 0) {
+                state = 'PRESENT'
             } else {
-                status = 'MISS'
+                state = 'MISS'
             }
 
-            details.push({
+            checkResult.push({
                 letter: playerGuess[i],
-                status
+                state
             })
         }
 
-        return {
-            details
-        };
+        return checkResult;
     }
 }

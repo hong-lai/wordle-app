@@ -1,18 +1,24 @@
+import ms, { type StringValue } from "ms";
+
+type TTLMapOption = {
+    ttl: StringValue,
+    checkInterval: StringValue
+}
+
 export default class TTLMap<K, V> extends Map<K, V> {
     private ttl: number;
     private timestamps: Map<K, number>;
     private intervalId: NodeJS.Timeout;
 
     /**
-     * 
      * @param ttl time to live for each entry in millisecond
      * @param checkInterval interval to periodically check for expired entries in millisecond
      */
-    constructor(ttl: number, checkInterval: number) {
+    constructor({ ttl, checkInterval }: TTLMapOption) {
         super();
-        this.ttl = ttl;
+        this.ttl = ms(ttl);
         this.timestamps = new Map();
-        this.intervalId = setInterval(() => this.cleanup(), checkInterval);
+        this.intervalId = setInterval(() => this.cleanup(), ms(checkInterval));
     }
 
     override set(key: K, value: V) {
@@ -37,7 +43,6 @@ export default class TTLMap<K, V> extends Map<K, V> {
         for (const [key, timestamp] of this.timestamps.entries()) {
             if (now - timestamp > this.ttl) {
                 this.delete(key);
-                console.log(`${key} has been deleted.`);
             }
         }
     }
