@@ -59,22 +59,6 @@ export default class WordleGame {
             const mode = parts[2] as GameMode;
             const maxGuess = Number(parts[3]);
             const answer = parts[4];
-            // const history = parts[5] === '' ? [] : parts[5].split(',').map(guess => {
-            //     const guessResult = guess.split('|');
-            //     const _history: WordleCheckResult = [];
-
-            //     for (let i = 0; i < guessResult[0].length; i++) {
-            //         const letter = guessResult[0][i];
-            //         const state = guessResult[1][i];
-
-            //         _history.push({
-            //             letter,
-            //             state: state === 'O' ? 'HIT' : state === '?' ? 'PRESENT' : 'MISS'
-            //         })
-            //     }
-
-            //     return _history;
-            // });
 
             const game = new WordleGame({
                 mode,
@@ -105,12 +89,6 @@ export default class WordleGame {
             this.mode,
             this.maxGuess,
             this.wordle.getAnswer(),
-            // this.history.map((result) => {
-            //     const word = result.map(letter => letter.letter).join('');
-            //     const states = WordleGame.convertResultToText(result);
-            //     return [word, states].join('|')
-            // }).join(',')
-
         ].join('#');
     }
 
@@ -230,5 +208,9 @@ export default class WordleGame {
 
     hasLost() {
         return !this.hasWon() && this.player.getNumGuess() >= this.getMaxGuess();
+    }
+
+    isGameOver() {
+        return this.hasWon() || this.hasLost();
     }
 }

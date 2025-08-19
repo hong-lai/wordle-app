@@ -1,7 +1,7 @@
 import WordleGame, { type GameMode } from "@wordle/WordleGame";
 import TTLMap from "../utils/TTLMap";
 
-type ScoreBoardType = {
+type ScoreBoard = {
   mode: GameMode,
   hasWon: boolean,
   playerName: string,
@@ -14,8 +14,6 @@ type ScoreBoardType = {
 const gameLocalDb = new TTLMap<string, string>({ ttl: '1h', checkInterval: '1h' });
 
 export default class WordleService {
-  private scoreBoard: ScoreBoardType = [];
-
   createGame(sessionId: string, playerName?: string, mode?: GameMode, maxGuess?: number) {
     if (gameLocalDb.has(sessionId)) {
       gameLocalDb.delete(sessionId);
@@ -67,38 +65,38 @@ export default class WordleService {
       throw new Error("Already lost");
     }
 
-    const res = game.guess(word);
+    const guessResult = game.guess(word);
 
     // Update game state
     gameLocalDb.set(sessionId, game.toSerialized());
 
-    return res;
-  }
-
-  // Acknowledge game over
-  acknowledge(sessionId: string) {
-    const game = this.getGame(sessionId);
-
-    if (game.hasWon() || game.hasLost()) {
-      this.scoreBoard.push({
-        mode: game.getMode(),
-        hasWon: game.hasWon(),
-        answer: game.getWordleAnswer(),
-        maxGuess: game.getMaxGuess(),
-        ...this.getPlayerInfo(sessionId)
-      });
-
-      return {
-        answer: game.getWordleAnswer(),
-        hasWon: game.hasWon()
-      };
-    }
-
-    throw new Error("Game not over yet");
+    return {
+      guessResult,
+      hasWon: game.hasWon(),
+      hasLost: game.hasLost(),
+      answer: game.isGameOver() ? game.getWordleAnswer() : ''
+    };
   }
 
   getScoreBoard() {
-    return this.scoreBoard;
+    const scoreBoard: ScoreBoard = [];
+
+    gameLocalDb.forEach(serialzed => {
+      const game = WordleGame.fromSerialized(serialzed);
+
+      if (game.isGameOver()) {
+        scoreBoard.push({
+          mode: game.getMode(),
+          hasWon: game.hasWon(),
+          answer: game.getWordleAnswer(),
+          maxGuess: game.getMaxGuess(),
+          playerName: game.getPlayer().name,
+          numGuess: game.getPlayer().getNumGuess()
+        });
+      }
+    });
+
+    return scoreBoard;
   }
 
   getLastGame(sessionId: string) {
@@ -107,6 +105,10 @@ export default class WordleService {
     const history = game.getHistory();
     const mode = game.getMode();
     const maxGuess = game.getMaxGuess();
+
+    if (game.isGameOver()) {
+      throw new Error('Already game over');
+    }
 
     if (game.getPlayer().getNumGuess() >= maxGuess) {
       throw new Error('Hit the max guess');

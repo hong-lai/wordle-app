@@ -43,7 +43,9 @@ app.use(session({
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(pino());
+app.use(pino({
+  level: 'fatal'
+}));
 
 app.use(wordleMiddleware.registerSession);
 app.use('/api/v1', wordleRoute)

@@ -10,7 +10,7 @@ function Setting({
   start: () => Promise<void>;
 }) {
   return (
-    <>
+    <form action={start}>
       <div style={settingStyles.container}>
         <label htmlFor="playerName" style={settingStyles.label}>
           Name
@@ -20,6 +20,7 @@ function Setting({
           type="text"
           maxLength={20}
           value={state.playerName}
+          autoComplete='off'
           onChange={(e) =>
             dispatch({
               type: 'set_player_name',
@@ -66,14 +67,33 @@ function Setting({
               }}
               style={settingStyles.input}
             />
+            <label htmlFor="roomName" style={settingStyles.label}>
+              Room Name
+            </label>
+            <input
+              id="roomName"
+              type="text"
+              value={state.roomName}
+              placeholder='Private'
+              autoComplete='off'
+              onChange={(e) => {
+                dispatch({
+                  type: 'set_room_name',
+                  payload: {
+                    roomName: e.target.value
+                  },
+                });
+              }}
+              style={settingStyles.input}
+            />
           </>
         )}
 
-        <button onClick={start} style={settingStyles.button}>
+        <button style={settingStyles.button}>
           OK
         </button>
       </div>
-    </>
+    </form>
   );
 }
 

@@ -10,7 +10,7 @@ import useGameSetting, { type GameMode } from './hooks/useGameSetting';
 import api from './config/api';
 import Confetti from 'react-confetti';
 
-export type GameStatus = 'WIN' | 'LOSE' | 'PLAYING' | 'LOADING' | 'WAITING';
+export type GameStatus = 'WIN' | 'LOSE' | 'PLAYING' | 'LOADING';
 export interface InputController {
   backspace(): void;
   letter(key: string): void;
@@ -92,6 +92,7 @@ function App() {
 
   const initializeGame = useCallback(async () => {
     setGameStatus('PLAYING');
+
     dispatchGameState({
       type: 'initialized_words',
       payload: { minRow: gameSetting.minRow },
@@ -149,61 +150,35 @@ function App() {
               return;
             }
 
-            const wordToReplace = response.data.message as Word;
-
-            setGameStatus('WAITING');
+            // answer shows only when player has lost the game.
+            const { guessResult, hasWon, hasLost, answer } =
+              response.data.result;
 
             dispatchGameState({
               type: 'replaced_current_word',
-              payload: { wordToReplace },
+              payload: { wordToReplace: guessResult },
             });
 
             // Wait until the animation of LetterBox has finished, not elegant, but it works.
             await setTimeoutMessage('🧪 Validating your guess...', 1500);
 
-            const hitCount = wordToReplace.reduce(
-              (sum, curr) => (curr.state === 'HIT' ? 1 : 0) + sum,
-              0
-            );
-
-            if (hitCount === MAX_SIZE) {
-              await api.post('/acknowledge');
+            if (hasWon) {
               setTimeoutMessage('🎊 Congrats! You won.');
               setGameStatus('WIN');
               return;
-            }
-
-            const round = gameState.currentRowIdx + 1;
-
-            if (round >= gameSetting.maxRow) {
-              const response = await api.post('/acknowledge');
-
-              const correctAnswer = response.data.answer;
-              setTimeoutMessage('The correct answer is ' + correctAnswer);
+            } else if (hasLost) {
+              setTimeoutMessage('The correct answer is ' + answer);
               setGameStatus('LOSE');
               return;
             }
 
             // Add more row if hits the min row
-            if (round >= gameSetting.minRow) {
+            if (gameState.currentRowIdx + 1 >= gameSetting.minRow) {
               dispatchGameState({ type: 'added_row' });
             } else {
               dispatchGameState({ type: 'proceeded_row' });
             }
 
-            setGameStatus('PLAYING');
-
-            if (hitCount === 4) {
-              setTimeoutMessage("You're almost there!");
-            } else {
-              const presentCount = wordToReplace.reduce(
-                (sum, curr) => (curr.state === 'PRESENT' ? 1 : 0) + sum,
-                0
-              );
-              setTimeoutMessage(
-                `🟩 Hit: ${hitCount}, 🟨 Present: ${presentCount}`
-              );
-            }
           } catch (error) {
             if (error instanceof Error) {
               setTimeoutMessage(error.message, 5000);
@@ -253,7 +228,7 @@ function App() {
   return (
     <>
       <Header />
-      {gameStatus === 'WIN' && <Confetti />}
+      {gameStatus === 'WIN' && <Confetti style={{ zIndex: 999 }} />}
       {gameStatus === 'LOADING' && (
         <Setting
           state={gameSetting}

@@ -7,12 +7,14 @@ export type GameSetting = {
   minRow: number;
   mode: GameMode;
   playerName: string;
+  roomName: string;
 };
 
 export type GameSettingAction =
   | { type: 'set_player_name'; payload: { playerName: string } }
   | { type: 'set_normal_mode'; payload?: { maxRow: number } }
-  | { type: 'set_cheat_mode' };
+  | { type: 'set_cheat_mode' }
+  | { type: 'set_room_name', payload: { roomName: string} };
 
 
 const initialGameSetting = {
@@ -20,6 +22,7 @@ const initialGameSetting = {
   minRow: 6,
   mode: 'NORMAL' as GameMode,
   playerName: 'Player',
+  roomName: '',
 };
 
 function useGameSetting() {
@@ -50,6 +53,14 @@ function useGameSetting() {
           mode: 'CHEAT' as GameMode,
           maxRow: Infinity,
           minRow: 6,
+          roomName: '',
+        };
+      }
+
+      case 'set_room_name': {
+        return {
+          ...prevState,
+          roomName: action.payload.roomName
         };
       }
 

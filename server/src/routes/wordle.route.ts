@@ -27,34 +27,16 @@ router.post('/guess', (req, res) => {
   }
 
   try {
-    const result = wordleService.guess(req.session.id, word.toString());
     const { playerName } = wordleService.getPlayerInfo(req.session.id);
-
     req.log.info(`${playerName} made a guess: ${word}`);
-    res.status(200).json({ success: true, message: result });
+
+    const result = wordleService.guess(req.session.id, word.toString());
+
+    res.status(200).json({ success: true, result });
 
   } catch (error) {
     // user needs to get some hints from the message
     res.status(200).json({ success: false, message: (error as Error).message });
-  }
-});
-
-router.post('/acknowledge', (req, res) => {
-  try {
-    const result = wordleService.acknowledge(req.session.id);
-    const { playerName } = wordleService.getPlayerInfo(req.session.id);
-
-    if (result.hasWon) {
-      req.log.info(`${playerName} has won the game.`);
-    } else {
-      req.log.info(`${playerName} has lost the game.`);
-    }
-
-    wordleService.deleteGame(req.session.id);
-
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(400).json({ success: false, message: (error as Error).message });
   }
 });
 
