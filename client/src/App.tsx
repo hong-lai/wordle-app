@@ -10,7 +10,7 @@ import useGameSetting, { type GameMode } from './hooks/useGameSetting';
 import api from './config/api';
 import Confetti from 'react-confetti';
 
-export type GameStatus = 'WIN' | 'LOSE' | 'PLAYING' | 'LOADING';
+export type GameStatus = 'IDLE' | 'INPUTING' | 'GUESSING' | 'WIN' | 'LOSE';
 export interface InputController {
   backspace(): void;
   letter(key: string): void;
@@ -31,7 +31,7 @@ function App() {
   const [timeoutMessage, setTimeoutMessage] = useTimeoutState('');
   const [gameSetting, dispatchGameSetting] = useGameSetting();
   const [gameState, dispatchGameState] = useGameState(gameSetting.minRow);
-  const [gameStatus, setGameStatus] = useState<GameStatus>('LOADING');
+  const [gameStatus, setGameStatus] = useState<GameStatus>('IDLE');
   const boardRef = useRef<BoardMethod>(null);
 
   const currentWord = gameState.words[gameState.currentRowIdx];
@@ -43,9 +43,9 @@ function App() {
         const lastGame = response.data;
 
         // Restore game state if there is at least one history
-        if (lastGame?.data?.history?.length) {
-          const { history, maxGuess, mode, playerName } =
-            lastGame.data as LastGame;
+        if (lastGame.result?.hasLastGame) {
+          const { history, maxGuess, mode, playerName } = lastGame.result
+            .details as LastGame;
 
           if (mode === 'CHEAT') {
             dispatchGameSetting({ type: 'set_cheat_mode' });
@@ -75,7 +75,7 @@ function App() {
           });
 
           setTimeoutMessage(`😄 Welcome back, ${playerName}`);
-          setGameStatus('PLAYING');
+          setGameStatus('INPUTING');
         }
       } catch (error) {
         console.error('Error fetching data: ', error);
@@ -91,7 +91,7 @@ function App() {
   ]);
 
   const initializeGame = useCallback(async () => {
-    setGameStatus('PLAYING');
+    setGameStatus('INPUTING');
 
     dispatchGameState({
       type: 'initialized_words',
@@ -140,6 +140,8 @@ function App() {
         ) {
           // Validate Wordle
           try {
+            setGameStatus('GUESSING');
+
             const response = await api.post('/guess', {
               word: currentWord.map((word) => word.letter).join(''),
             });
@@ -147,6 +149,7 @@ function App() {
             if (response.data.success === false) {
               setTimeoutMessage(response.data.message, 5000);
               boardRef?.current?.shake(gameState.currentRowIdx);
+              setGameStatus('INPUTING');
               return;
             }
 
@@ -160,13 +163,15 @@ function App() {
             });
 
             // Wait until the animation of LetterBox has finished, not elegant, but it works.
-            await setTimeoutMessage('🧪 Validating your guess...', 1500);
+            await setTimeoutMessage('🧪 Validating your guess...', 1300);
 
             if (hasWon) {
               setTimeoutMessage('🎊 Congrats! You won.');
               setGameStatus('WIN');
               return;
-            } else if (hasLost) {
+            }
+
+            if (hasLost) {
               setTimeoutMessage('The correct answer is ' + answer);
               setGameStatus('LOSE');
               return;
@@ -179,6 +184,7 @@ function App() {
               dispatchGameState({ type: 'proceeded_row' });
             }
 
+            setGameStatus('INPUTING');
           } catch (error) {
             if (error instanceof Error) {
               setTimeoutMessage(error.message, 5000);
@@ -202,7 +208,7 @@ function App() {
     () =>
       new Proxy(_inputController, {
         get(target, prop: keyof typeof _inputController) {
-          if (gameStatus !== 'PLAYING') {
+          if (gameStatus !== 'INPUTING') {
             return () => {};
           }
 
@@ -229,14 +235,14 @@ function App() {
     <>
       <Header />
       {gameStatus === 'WIN' && <Confetti style={{ zIndex: 999 }} />}
-      {gameStatus === 'LOADING' && (
+      {gameStatus === 'IDLE' && (
         <Setting
           state={gameSetting}
           dispatch={dispatchGameSetting}
           start={initializeGame}
         />
       )}
-      {gameStatus !== 'LOADING' && (
+      {gameStatus !== 'IDLE' && (
         <>
           <MessageBar message={timeoutMessage} />
           <div style={{ position: 'relative' }}>
@@ -247,7 +253,7 @@ function App() {
                 </button>
                 <button
                   style={buttonStyles}
-                  onClick={() => setGameStatus('LOADING')}
+                  onClick={() => setGameStatus('IDLE')}
                 >
                   Back
                 </button>

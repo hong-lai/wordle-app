@@ -46,6 +46,8 @@ const overlayStyles: React.CSSProperties = {
   justifyContent: 'center',
   alignItems: 'center',
   columnGap: '12px',
+  overflowY: 'scroll',
+  scrollbarColor: '#282828 #323232'
 };
 
 const scoreboardContainerStyles: React.CSSProperties = {
