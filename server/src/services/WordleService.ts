@@ -1,5 +1,6 @@
 import WordleGame, { type GameMode } from "@wordle/WordleGame";
 import TTLMap from "../utils/TTLMap";
+import { randomUUID } from "node:crypto";
 
 type ScoreBoard = {
   mode: GameMode,
@@ -11,11 +12,12 @@ type ScoreBoard = {
 }[]
 
 
-const gameLocalDb = new TTLMap<string, string>({ ttl: '1h', checkInterval: '1h' });
-
+const gameLocalDb = new TTLMap<string, string>({ ttl: '30d', checkInterval: '30d' });
 export default class WordleService {
   createGame(sessionId: string, playerName?: string, mode?: GameMode, maxGuess?: number) {
     if (gameLocalDb.has(sessionId)) {
+      // Change the id of the game in the pass to prevent from overriding data
+      gameLocalDb.set(randomUUID(), gameLocalDb.get(sessionId)!);
       gameLocalDb.delete(sessionId);
     }
 
@@ -100,25 +102,31 @@ export default class WordleService {
   }
 
   getLastGame(sessionId: string) {
-    const game = this.getGame(sessionId);
-    const playerName = game.getPlayer().name;
-    const history = game.getHistory();
-    const mode = game.getMode();
-    const maxGuess = game.getMaxGuess();
+    try {
 
-    if (game.isGameOver()) {
-      throw new Error('Already game over');
+      const game = this.getGame(sessionId);
+      const playerName = game.getPlayer().name;
+      const history = game.getHistory();
+      const mode = game.getMode();
+      const maxGuess = game.getMaxGuess();
+
+      if (game.isGameOver()) {
+        throw new Error('Game over');
+      }
+
+      return {
+        hasLastGame: true,
+        details: {
+          playerName,
+          history,
+          mode,
+          maxGuess
+        }
+      };
+    } catch (_) {
+      return {
+        hasLastGame: false
+      }
     }
-
-    if (game.getPlayer().getNumGuess() >= maxGuess) {
-      throw new Error('Hit the max guess');
-    }
-
-    return {
-      playerName,
-      history,
-      mode,
-      maxGuess
-    };
   }
 }

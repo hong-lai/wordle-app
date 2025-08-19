@@ -8,17 +8,19 @@ declare module 'express-session' {
 const router = Router();
 export const wordleService = new WordleService();
 
+// Create a Wordle game.
 router.post('/create', (req, res) => {
-  const playerName = req.body.name?.toString();
+  const playerName = req.body.name?.toString()?.replace(/[^a-zA-Z ]/g, '_');
   const mode = req.body.mode?.toString();
   const parsedmaxGuess = parseInt(req.body.maxGuess);
   const maxGuess = isNaN(parseInt(req.body.maxGuess)) ? undefined : parsedmaxGuess
 
-  const meta = wordleService.createGame(req.session.id, playerName, mode, maxGuess);
+  const result = wordleService.createGame(req.session.id, playerName, mode, maxGuess);
 
-  res.status(201).json({ success: true, message: "Successfully created", meta });
+  res.status(201).json({ success: true, result });
 });
 
+// Make a guess and check whether the player wins the game
 router.post('/guess', (req, res) => {
   const word = req.body.word;
   if (!word) {
@@ -40,26 +42,20 @@ router.post('/guess', (req, res) => {
   }
 });
 
-router.get('/score', (req, res) => {
-  try {
-    const scoreBoard = wordleService.getScoreBoard();
+// Get the game in playing
+router.get('/last-game', (req, res) => {
+  const result = wordleService.getLastGame(req.session.id);
 
-    res.status(200).json(scoreBoard);
-  } catch (error) {
-    res.status(400).json({ success: false, message: (error as Error).message })
-  }
+  res.status(200).json({ success: true, result });
 });
 
 
-router.get('/last-game', (req, res) => {
-  try {
-    const lastGame = wordleService.getLastGame(req.session.id);
+// Get the score board
+router.get('/score', (_req, res) => {
+  const scoreBoard = wordleService.getScoreBoard();
 
-    res.status(200).json({ success:true, data: lastGame });
+  res.status(200).json(scoreBoard);
+});
 
-  } catch (error) {
-    res.status(200).json({ success: true, data: [] })
-  }
-})
 
 export default router;
